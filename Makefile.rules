@@ -65,6 +65,10 @@ Displays this documentation.
 
 This is the default target.
 
+=item B<it>
+
+Run default set of tests.
+
 =item B<ius>
 
 Run Cadence Incisive simulator for $(SRCS).
