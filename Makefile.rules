@@ -269,7 +269,7 @@ PHONIES := \
   ius ius_debug ius_std ius_std_debug ius-debug ius-std ius-std-debug\
   questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
   vcs vcs_debug vcs_std\
-  clean version it
+  clean starting finished version it
 DFLT        := help
 
 .PHONY: $(PHONIES)
@@ -278,8 +278,14 @@ DEFAULT: $(DFLT)
 
 CXXFLAGS:=-D$(SIMULATOR) $(addprefix -D,$(DEFS)) -I$(UVM_HOME)/src
 
+starting:
+	@echo -n "TIMESTAMP: Starting at "; date
+
+finished:
+	@echo -n "TIMESTAMP: Finished at "; date
+
 version:
-	@echo "UVM version: $(UVM_VER)$(UVM_SUB_VER)"
+	@echo "INFO: UVM version: $(UVM_VER)$(UVM_SUB_VER)"
 
 %.so: %.cpp
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o $@ $<
@@ -336,7 +342,9 @@ vcs_debug: version $(DPI_LIBS)
 vcs-std: vcs_std
 vcs_std: version $(DPI_LIBS)
 	$(VCS) $(VCS_OPTS) +acc +vpi $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) \
+	@make starting
 	$(UVM_HOME)/src/dpi/uvm_dpi.cc -CFLAGS -DVCS -R $(EXTRA_VCS_RUNOPTS)
+	@make finished
 
 #-------------------------------------------------------------------------------
 clean:
