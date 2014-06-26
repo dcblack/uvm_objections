@@ -4,6 +4,19 @@
 #
 # ./doit -h will display the documentation
 
+################################################################################
+#
+#  #    # ##### #     #####
+#  #    # #     #     #    #
+#  #    # #     #     #    #
+#  ###### ##### #     #####
+#  #    # #     #     #
+#  #    # #     #     #
+#  #    # ##### ##### #
+#
+################################################################################
+# DOCUMENTATION
+#-------------------------------------------------------------------------------
 function Help() {
   perldoc $0
   cat >/dev/null <<.
@@ -55,6 +68,10 @@ Quiet mode to suppress unnecessary output.
 
 Specify simulator to use.
 
+=item B<-T> I<TAG>
+
+Specify a I<TAG> to include in log file name.
+
 =item B<-p> #
 
 Seconds to delay between simulations (minimum 5)
@@ -97,30 +114,47 @@ David C Black <david.black@doulos.com>
 exit 0
 }
 
+################################################################################
+#
+#   ####   ####  ####   #####
+#  #    # #    # #   #  #    
+#  #      #    # #    # #    
+#  #      #    # #    # #####
+#  #      #    # #    # #    
+#  #    # #    # #   #  #    
+#   ####   ####  ####   #####
+#
+################################################################################
+# CODE
+#-------------------------------------------------------------------------------
+export TAG
+
 function analyze_uvm_objection_performance() {
   local R=""
   if [[ "$6" = "R=0" ]]; then R="r"; fi
   bin/header ${2}${R}
   echo "------------------------------------------------------------------------------"
-  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6}"
-  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}-log.txt"
-  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1      | tee -a ${SIM}+uvm-${2}${R}-log.txt
+  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6}"                | tee ${SIM}+uvm-${2}${R}${TAG}-log.txt
+  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1" | tee -a ${SIM}+uvm-${2}${R}${TAG}-log.txt
+  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1          | tee -a ${SIM}+uvm-${2}${R}${TAG}-log.txt
 }
 
+################################################################################
 function Doit() {
   local ALL="1.1b 1.1c 1.1d 1.2r 1.2"
   local LIST=""
   local verbose=0
+  local pause=60
   local LEVELS=$LEVELS
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
   local RIPPLE=$RIPPLE
-  local pause=60
-  local SIM=questa
+  local SIM=$SIM
   if [[ "$LEVELS" = "" ]]; then LEVELS=3; fi
   if [[ "$AGENTS" = "" ]]; then AGENTS=2; fi
   if [[ "$COUNTS" = "" ]]; then COUNTS=21e6; fi
   if [[ "$RIPPLE" = "" ]]; then RIPPLE=1; fi
+  if [[ "$SIM"    = "" ]]; then SIM="questa"; fi
 
   while  [[ "${1}" =  -* ]];do
     if   [[ "${1}" = "-q" ]]; then verbose=0;
@@ -132,24 +166,26 @@ function Doit() {
     elif [[ "${1}" = "-L" ]]; then LEVELS=${2}; shift;
     elif [[ "${1}" = "-P" ]]; then RIPPLE=${2}; shift;
     elif [[ "${1}" = "-S" ]]; then SIM=${2};    shift;
+    elif [[ "${1}" = "-T" ]]; then TAG=${2};    shift;
     elif [[ "${1}" = "-p" ]]; then pause=${2};  shift;
     elif [[ "${1}" = "-v" ]]; then verbose=1;
     fi
     shift
   done
-  while [[ $# != 0 ]]; do
+  while [[ $# != 0 ]]; do # Add user specified targets
     LIST="$LIST ${1}"
     shift
   done
-  if [[ "$LIST" = "" ]]; then
+  if [[ "$LIST" = "" ]]; then # Use default list
     LIST="$ALL"
   fi
-  case $SIM in
+  case $SIM in # Legal simulator target prefixes
     questa) ;;
     ius) ;;
     vcs) ;;
     *) echo "FATAL: Invalid simulator '$SIM' specified"; exit 1 ;;
   esac
+  if [[ $pause -lt 30 ]]; then pause=30; fi # Minimum
 
 
   for V in $LIST; do
@@ -160,10 +196,12 @@ function Doit() {
       1.1d) analyze_uvm_objection_performance $SIM 1.1d L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
       1.2r) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=0       ;;
       1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
+      1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
     esac
     echo ""
     if [[ $pause != 0 ]]; then sleep $pause; fi
   done
 }
 
+################################################################################
 Doit "$@"

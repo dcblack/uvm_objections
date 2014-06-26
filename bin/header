@@ -43,6 +43,7 @@ OPTIONS:
  B<-help> ------------- display this help
  B<-hx>=I<MULT> ------- horizontal width factor (fatter characters)
  B<-s></-s>I<#> ------------ specify alternate character set
+ B<-sh> --------------- suitable for inclusion in sh/bash/csh/perl/tcl scripts
  B<-spacing>=I<COLS> -- add I<COLS> columns of space between letters
  B<-uc> --------------- force to UPPERCASE
  B<-v> ---------------- verbose mode
@@ -58,6 +59,10 @@ character wide characters.
 =head1 OPTIONS
 
 =over
+
+=item B<-b>
+
+Bold output
 
 =item B<-char>=I<CHAR>
 
@@ -78,6 +83,10 @@ help - this text
 =item B<-hx>=I<MULT>
 
 specify integer horizontal multiplier (default 1)
+
+=item B<-sh>
+
+Output as comments with hash character (#) suitable for inclusion in bash/perl/tcl scripts.
 
 =item B<-wrap>=I<LEN>
 
@@ -182,6 +191,13 @@ while ($ARGV[0] =~ /^-/) {
   } elsif ($opt =~ m{^-{1,2}vbar(?:=)?}) {
     $OPT{-vbar} = $OPT{-char};
     $OPT{-vbar} = $' if $opt =~ m{=};
+  #---------------------------------------------------------------------------
+  } elsif ($opt =~ m{^-{1,2}sh$}) {
+    $OPT{-fmt}  = 'cpp';
+    $OPT{-cols} = 78;
+    $OPT{-char} = '#';
+    $OPT{-hbar} = '#';
+    $OPT{-vbar} = '#';
   #---------------------------------------------------------------------------
   } elsif ($opt =~ m{^-{1,2}box(?:=)?}) {
     $OPT{-box}  = $OPT{-char};
@@ -290,6 +306,7 @@ while ($ARGV[0] =~ /^-/) {
     system "$0 <>[]{}";
     system "$0 -c   Data";
     system "$0 -cpp Data";
+    system "$0 -sh  Data";
     system "$0 -fit -cpp Data";
     system "$0 -vbar Data";
     system "$0 -hbar Data";
