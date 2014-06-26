@@ -119,7 +119,7 @@ function Doit() {
   local SIM=questa
   if [[ "$LEVELS" = "" ]]; then LEVELS=3; fi
   if [[ "$AGENTS" = "" ]]; then AGENTS=2; fi
-  if [[ "$COUNTS" = "" ]]; then COUNTS=100e6; fi
+  if [[ "$COUNTS" = "" ]]; then COUNTS=21e6; fi
   if [[ "$RIPPLE" = "" ]]; then RIPPLE=1; fi
 
   while  [[ "${1}" =  -* ]];do
