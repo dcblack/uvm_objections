@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# Script to run various performance runs
+
 function analyze_uvm_objection_performance() {
   local R=""
   if [[ "$6" = "R=0" ]]; then R="r"; fi
@@ -15,9 +18,9 @@ function Doit() {
   local verbose=0
   local LEVELS=3
   local AGENTS=2
-  local COUNTS=1e9
+  local COUNTS=14e6
   local RIPPLE=1
-  local pause=0
+  local pause=60
   local SIM=questa
 
   while  [[ "${1}" =  -*     ]];do
@@ -56,6 +59,7 @@ function Doit() {
       1.2r) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=0       ;;
       1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
     esac
+    echo ""
     if [[ $pause != 0 ]]; then sleep $pause; fi
   done
 }
