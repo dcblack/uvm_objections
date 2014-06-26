@@ -43,7 +43,7 @@ package performance_pkg;
         phase.drop_objection(this, "lowering");
       end//repeat
       finished_barrier.wait_for();
-    endtask
+    endtask : main_phase
     //--------------------------------------------------------------------------
   endclass : Obj_driver_t
 
@@ -123,43 +123,45 @@ package performance_pkg;
       longint count;
       longint start, finish;
       shortint waiters;
+      shortint drivers;
       bit mode = 1; //< default old way
       string mode_string = "";
       uvm_objection objection;
       assert(uvm_config_db#(longint)::get(this, "", "count", count));
-      `uvm_info("test1:objections", $sformatf("Running %s iterations", formatn(count)), UVM_NONE)
+      assert(uvm_config_db#(shortint)::get(this, "", "drivers", drivers));
       objection = phase.get_objection();
       `ifdef UVM_POST_VERSION_1_1
-      void'(uvm_config_db#(int)::get(this, "", "ripple", mode));
+      void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
       objection.set_propagate_mode(mode);
+      if (mode == 0) mode_string = " without propagation";
       `endif
       objection.set_drain_time(uvm_top,10ns);
       uvm_top.set_timeout(1000ms);
-      phase.raise_objection(this, "raising"); // allow setup
+      phase.raise_objection(this, "raising to allow setup"); // allow setup
       starting_event = global_event_pool.get("starting");
       finished_barrier = global_barrier_pool.get("finished");
       #1ps;
       waiters = starting_event.get_num_waiters();
       finished_barrier.set_threshold(waiters+1);
-      phase.drop_objection(this, "lowering");
+      `uvm_info("test1:objections", $sformatf("Running %0d x %s iterations%s", drivers, formatn(count),mode_string), UVM_NONE)
+      phase.drop_objection(this, "lowering after setup");
       starting_event.trigger();
       start = get_time();
-      phase.raise_objection(this, "raising"); // simulate sequence start
+      phase.raise_objection(this, "raising to start main sequence"); // simulate sequence start
       #10ns;
-      phase.drop_objection(this, "lowering"); // simulate sequence done
+      phase.drop_objection(this, "lowering at end of main sequence"); // simulate sequence done
       finished_barrier.wait_for();
       finish = get_time();
-      if (mode == 0) mode_string = " without propagation";
       `uvm_info("test1:objections"
                , $sformatf("RESULT: %s objected %s times in %s ms%s"
                           , `UVM_VERSION_STRING
-                          , formatn(count)
+                          , formatn(drivers*count)
                           , formatn(finish-start)
                           , mode_string
                           )
                , UVM_NONE
                )
-    endtask
+    endtask : main_phase
     //--------------------------------------------------------------------------
   endclass : Obj_test_t
 

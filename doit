@@ -1,6 +1,101 @@
 #!/bin/bash
 #
-# Script to run various performance runs
+#$Info: ./doit - Script to run various performance runs. $
+#
+# ./doit -h will display the documentation
+
+function Help() {
+  perldoc $0
+  cat >/dev/null <<.
+=pod
+
+=head1 NAME
+
+B<doit> - Script to run various performance runs
+
+=head1 SYNOPSIS
+
+B<./doit> [OPTIONS] [VERSIONS]
+
+=head1 DESCRIPTION
+
+This script uses a specified simulator (default Mentor questa) to run
+UVM objections performance testing. Default is to raise and lower objections
+millions of times and report the overall CPU time.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-C> #
+
+Number of times to repeat inner loop
+
+=item B<-D> #
+
+Number of agents to instantiate
+
+=item B<-h>
+
+Display this help.
+
+=item B<-L> #
+
+Number of levels of hierarchy above drivers
+
+=item B<-P> 0|1
+
+Propagate objections or not (affects 1.2 and above only)
+
+=item B<-q>
+
+Quiet mode to suppress unnecessary output.
+
+=item B<-S> questa|ius|vcs
+
+Specify simulator to use.
+
+=item B<-p> #
+
+Seconds to delay between simulations (minimum 5)
+
+=item B<-v>
+
+Verbose mode to expand explanatory output.
+
+=back
+
+=head1 VERSIONS
+
+Supported versions are:
+
+=over
+
+=item 1.1b
+
+=item 1.1c
+
+=item 1.1d
+
+=item 1.2
+
+=item 1.2r
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (C) 2014 Doulos Inc. All rights reserved.
+
+=head1 AUTHOR
+
+David C Black <david.black@doulos.com>
+
+=cut
+
+.
+exit 0
+}
 
 function analyze_uvm_objection_performance() {
   local R=""
@@ -8,30 +103,37 @@ function analyze_uvm_objection_performance() {
   header ${2}${R}
   echo "------------------------------------------------------------------------------"
   echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6}"
-  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}.log"
-  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}.log
+  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}-log.txt"
+  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}-log.txt
 }
 
 function Doit() {
   local ALL="1.1b 1.1c 1.1d 1.2r 1.2"
   local LIST=""
   local verbose=0
-  local LEVELS=3
-  local AGENTS=2
-  local COUNTS=14e6
-  local RIPPLE=1
+  local LEVELS=$LEVELS
+  local AGENTS=$AGENTS
+  local COUNTS=$COUNTS
+  local RIPPLE=$RIPPLE
   local pause=60
   local SIM=questa
+  if [[ "$LEVELS" = "" ]]; then LEVELS=3; fi
+  if [[ "$AGENTS" = "" ]]; then AGENTS=2; fi
+  if [[ "$COUNTS" = "" ]]; then COUNTS=21e6; fi
+  if [[ "$RIPPLE" = "" ]]; then RIPPLE=1; fi
 
-  while  [[ "${1}" =  -*     ]];do
-    if   [[ "${1}" = "-q"          ]]; then verbose=0
-    elif [[ "${1}" = "-v"          ]]; then verbose=1
-    elif [[ "${1}" = "-p"          ]]; then pause=${2};  shift;
-    elif [[ "${1}" = "-P"          ]]; then RIPPLE=${2};  shift;
-    elif [[ "${1}" = "-C"          ]]; then COUNTS=${2}; shift;
-    elif [[ "${1}" = "-D"          ]]; then AGENTS=${2}; shift;
-    elif [[ "${1}" = "-L"          ]]; then LEVELS=${2}; shift;
-    elif [[ "${1}" = "-S"          ]]; then SIM=${2}; shift;
+  while  [[ "${1}" =  -* ]];do
+    if   [[ "${1}" = "-q" ]]; then verbose=0;
+    elif [[ "${1}" = "-C" ]]; then COUNTS=${2}; shift;
+    elif [[ "${1}" = "-D" ]]; then AGENTS=${2}; shift;
+    elif [[ "${1}" = "-h"     ]]; then Help;
+    elif [[ "${1}" = "-help"  ]]; then Help;
+    elif [[ "${1}" = "--help" ]]; then Help;
+    elif [[ "${1}" = "-L" ]]; then LEVELS=${2}; shift;
+    elif [[ "${1}" = "-P" ]]; then RIPPLE=${2}; shift;
+    elif [[ "${1}" = "-S" ]]; then SIM=${2};    shift;
+    elif [[ "${1}" = "-p" ]]; then pause=${2};  shift;
+    elif [[ "${1}" = "-v" ]]; then verbose=1;
     fi
     shift
   done
