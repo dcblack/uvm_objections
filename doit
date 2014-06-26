@@ -100,11 +100,11 @@ exit 0
 function analyze_uvm_objection_performance() {
   local R=""
   if [[ "$6" = "R=0" ]]; then R="r"; fi
-  header ${2}${R}
+  bin/header ${2}${R}
   echo "------------------------------------------------------------------------------"
   echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6}"
   echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}-log.txt"
-  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}-log.txt
+  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1      | tee -a ${SIM}+uvm-${2}${R}-log.txt
 }
 
 function Doit() {
@@ -119,7 +119,7 @@ function Doit() {
   local SIM=questa
   if [[ "$LEVELS" = "" ]]; then LEVELS=3; fi
   if [[ "$AGENTS" = "" ]]; then AGENTS=2; fi
-  if [[ "$COUNTS" = "" ]]; then COUNTS=21e6; fi
+  if [[ "$COUNTS" = "" ]]; then COUNTS=100e6; fi
   if [[ "$RIPPLE" = "" ]]; then RIPPLE=1; fi
 
   while  [[ "${1}" =  -* ]];do
