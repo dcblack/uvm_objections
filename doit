@@ -198,6 +198,7 @@ function Doit() {
       1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
       1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
     esac
+    make clean
     echo ""
     if [[ $pause != 0 ]]; then sleep $pause; fi
   done
