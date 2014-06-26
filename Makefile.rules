@@ -1,0 +1,354 @@
+#!make -f
+# -*- make -*- vim:syntax=make:fdm=marker:fmr=<<<,>>>:tw=80:sw=2:et
+# Find path to THIS file
+MAKEFILE_RULES := $(realpath $(lastword $(MAKEFILE_LIST)))
+#
+$(info INFO: $$ Makefile,v 1.1 2014/05/22 04:26:56 dcblack Exp $$)
+################################################################################
+# $License: Apache 2.0 $
+#
+# This file is licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+################################################################################
+# BEGIN DOCUMENTATION
+################################################################################
+define MAKEFILE_DOCUMENTATION
+
+#######################################################################
+#                                                                     #
+#   ---->>     To read this use: perldoc Makefile          <<----     #
+#                                                                     #
+#######################################################################
+
+=pod
+
+=head1 NAME
+
+B<Makefile> - Makefile for UVM performance measurements tests
+
+=head1 SYNOPSIS
+
+B<make -f Makefile> {:TARGET:}
+
+or if #included from a Makefile
+
+B<make> [{:TARGET:}]
+
+NOTE - Some local installations of GNU make rename it to B<gmake>.
+
+=head1 DESCRIPTION
+
+This file, Makefile, contains rules for and running the Easier UVM
+Generator under UNIX. It has a variety of pseudo-targets
+(targets that do not correspond directly to creation of a like named
+file).
+
+=head1 USAGE
+
+The following targets are available:
+
+=over
+
+=item B<help>
+
+Displays this documentation.
+
+This is the default target.
+
+=item B<ius>
+
+Run Cadence Incisive simulator for $(SRCS).
+
+=item B<ius_debug>
+
+Run Cadence Incisive simulator in debug mode (GUI) for $(SRCS).
+
+=item B<ius_std>
+
+Run Cadence Incisive simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<ius_std_debug>
+
+Run Cadence Incisive simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<questa>
+
+Run Mentor Questasim simulator for $(SRCS).
+
+=item B<questa_debug>
+
+Run Mentor Questasim simulator in debug mode (GUI) for $(SRCS).
+
+=item B<questa_std>
+
+Run Mentor Questasim simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<questa_std_debug>
+
+Run Mentor Questasim simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<vcs>
+
+Run Synopsys VCS simulator for $(SRCS).
+
+=item B<vcs_debug>
+
+Run Synopsys VCS simulator in debug mode (GUI) for $(SRCS).
+
+=item B<vcs_std>
+
+Run Synopsys VCS for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<clean>
+
+Remove automatically generated files and libraries from (old) simulations.
+
+=item B<version>
+
+Display UVM version
+
+=back
+
+=head1 AUTHOR
+
+David.Black@Doulos.com
+
+=cut
+
+endef
+
+################################################################################
+# END DOCUMENTATION
+################################################################################
+
+# Select UVM version
+ifeq "$V" "1.2"
+  UVM_VER := 1.2
+  UVM_SUB_VER := 
+endif
+ifeq "$V" "1.1d"
+  UVM_VER := 1.1
+  UVM_SUB_VER := d
+endif
+ifeq "$V" "1.1c"
+  UVM_VER := 1.1
+  UVM_SUB_VER := c
+endif
+ifndef UVM_VER
+  UVM_VER := 1.1
+  UVM_SUB_VER := d
+endif
+
+FINDBIN = $(firstword $(wildcard $(addsuffix /$1,/bin /usr/bin)))
+STD_FLAGS   := -fPIC
+START_DIR   := ${shell pwd}
+TARGET_ARCH := linux_x86_64
+SHELL       := /bin/sh
+MKDIR       := mkdir
+RM          := rm -rf
+FIND        := $(firstword $(wildcard /bin /usr/bin/find))
+            
+ifndef UVM_HOME
+  UVM_HOME := $(lastword $(shell $(FIND) /eda/uvm /apps -name -name uvm-$(UVM_VER)$(UVM_SUB_VER)))
+endif
+
+################################################################################
+# Figure out architecture info
+################################################################################
+PLATFORM:=$(shell uname -s)
+MACHINE:=$(shell uname -m)
+RELEASE:=$(shell uname -r)
+OS_FOUND:=${PLATFORM}-${MACHINE}
+ifndef HOST_ARCH
+  ifeq "${PLATFORM}" "SunOS"
+    HOST_ARCH := gccsparcOS5
+  endif
+  ifeq "${PLATFORM}" "Linux"
+   ifeq "${MACHINE}" "x86_64"
+    HOST_ARCH := linux64
+   else
+    HOST_ARCH := linux
+   endif
+  endif
+  ifeq "${PLATFORM}" "CYGWIN_NT-5.1"
+    HOST_ARCH := cygwin
+  endif
+  ifeq "${PLATFORM}" "Darwin"
+    ifeq "${MACHINE}" "i386"
+      ifneq "$(shell perl -le '$$a=qq{@ARGV};$$a=~s/[.].*//;print $$a;' ${RELEASE})" "9"
+        HOST_ARCH := macosx64
+      else
+        HOST_ARCH := macosx386
+      endif
+    else
+      ifeq "${MACHINE}" "x86_64"
+        HOST_ARCH := macosx64
+      else
+        HOST_ARCH := macosx386
+      endif
+    endif
+  endif
+endif
+
+ifndef TARGET_ARCH
+  TARGET_ARCH:=${HOST_ARCH}
+endif
+ifdef FORCE_ARCH
+  $(warning Overriding TARGET_ARCH)
+  TARGET_ARCH:=${FORCE_ARCH}
+endif
+
+ifndef TARGET_ARCH
+  $(error This makefile only supported on Linux, Cygwin, Darwin or SunOS. I do not recognize platform ${OS_FOUND})
+else
+  $(info INFO: PLATFORM=$(PLATFORM) MACHINE=$(MACHINE) TARGET_ARCH=$(TARGET_ARCH))
+endif
+
+##############################################################################
+##
+##  Variables that point to specific tool installations and options
+##
+##############################################################################
+
+ifeq "$(PLATFORM)" "Darwin"
+ CXX := clang++
+ CC  := clang
+else
+ CXX := g++
+ CC  := gcc
+endif
+SIMULATOR := unknown_simulator
+
+
+ifeq "$(findstring questa,$(MAKECMDGOALS))" "questa"
+QVERILOG      := qverilog
+ifdef MODEL_TECH
+  QUESTA_HOME := $(MODEL_TECH)
+else
+  QUESTA_HOME := ${shell which vsim | sed -e's/\/$(TARGET_ARCH)\/vsim//'}
+endif
+  SIMULATOR   := QUESTA
+# CXX         := $(lastword $(shell find $(QUESTA_HOME) -name 'g++'))
+# CC          := $(lastword $(shell find $(QUESTA_HOME) -name 'gcc'))
+  QUESTA_LIBS := $(QUESTA_HOME)/uvm-$(UVM_VER)$(UVM_SUB_VER)/$(TARGET_ARCH)/uvm_dpi
+  QUESTA_OPTS := -novopt  $(EXTRA_QUESTA_OPTS)
+endif
+
+ifeq "$(findstring ius,$(MAKECMDGOALS))" "ius"
+  SIMULATOR   := IUS
+  IRUN        := irun
+  IUS_HOME    := ${shell ncroot}
+  IUS_OPTS    := $(EXTRA_IUS_OPTS)
+endif
+
+
+ifeq "$(findstring vcs,$(MAKECMDGOALS))" "vcs"
+  SIMULATOR   := VCS
+  VCS         := vcs
+  VCS_OPTS    := -sverilog +acc +vpi -timescale=1ns/1ns $(EXTRA_VCS_OPTS)
+endif
+
+##############################################################################
+##
+##  Compile and run target
+##
+##############################################################################
+
+PHONIES := \
+  DEFAULT help\
+  ius ius_debug ius_std ius_std_debug ius-debug ius-std ius-std-debug\
+  questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
+  vcs vcs_debug vcs_std\
+  clean version it
+DFLT        := help
+
+.PHONY: $(PHONIES)
+
+DEFAULT: $(DFLT)
+
+CXXFLAGS:=-D$(SIMULATOR) $(addprefix -D,$(DEFS)) -I$(UVM_HOME)/src
+
+version:
+	@echo "UVM version: $(UVM_VER)$(UVM_SUB_VER)"
+
+%.so: %.cpp
+	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o $@ $<
+
+%.x: $(SRCS)
+	$(CXX) -g -std=c++11 $(CXXFLAGS) -o $@ $(SRCS)
+	./$@
+
+#-------------------------------------------------------------------------------
+ius: version $(DPI_LIBS)
+	$(IRUN) $(IUS_OPTS) -uvmhome $(IUS_HOME)/tools/$(UVM_VER) $(INCDIRS) $(SRCS) $(EXTRA_IUS_RUNOPTS)
+
+
+ius-debug: ius_debug
+ius_debug: version $(DPI_LIBS)
+	$(IRUN) $(IUS_OPTS) -uvmhome $(IUS_HOME)/tools/$(UVM_VER) $(INCDIRS) $(SRCS) +access+rwc -gui $(EXTRA_IUS_RUNOPTS)
+
+ius-std: ius_std
+ius_std: version $(DPI_LIBS)
+	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
+	$(IRUN) $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -sv_lib uvm_dpi -loadpli $(IUS_HOME)/tools/uvm/uvm_lib/uvm_sv/lib/libuvmpli.so:uvm_pli_boot $(EXTRA_IUS_RUNOPTS)
+
+ius-std-debug: ius_std_debug
+ius_std_debug: version $(DPI_LIBS)
+	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
+	$(IRUN) -uvmnoautocompile $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) +access+rwc -gui -sv_lib uvm_dpi  -loadpli $(IUS_HOME)/tools/uvm/uvm_lib/uvm_sv/lib/libuvmpli.so:uvm_pli_boot $(EXTRA_IUS_RUNOPTS)
+
+#-------------------------------------------------------------------------------
+questa: version $(DPI_LIBS)
+	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS)+$(QUESTA_HOME)/verilog_src/uvm-$(UVM_VER)$(UVM_SUB_VER)/src $(SRCS) -R -sv_lib $(QUESTA_LIBS) $(EXTRA_QUESTA_RUNOPTS)
+
+questa-debug: questa_debug
+questa_debug: version $(DPI_LIBS)
+	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS)+$(QUESTA_HOME)/verilog_src/uvm-$(UVM_VER)$(UVM_SUB_VER)/src $(SRCS) -R -sv_lib $(QUESTA_LIBS) -gui $(EXTRA_QUESTA_RUNOPTS)
+
+questa-std: questa_std
+questa_std: version $(DPI_LIBS)
+	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
+	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi $(EXTRA_QUESTA_RUNOPTS)
+
+questa-std-debug: questa_std_debug
+questa_std_debug: version $(DPI_LIBS)
+	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
+	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi -gui $(EXTRA_QUESTA_RUNOPTS)
+
+#-------------------------------------------------------------------------------
+vcs: version $(DPI_LIBS)
+	$(VCS) $(VCS_OPTS) -ntb_opts uvm $(INCDIRS) $(SRCS) -R $(EXTRA_VCS_RUNOPTS)
+
+vcs-debug: vcs_debug
+vcs_debug: version $(DPI_LIBS)
+	$(VCS) $(VCS_OPTS) -ntb_opts uvm $(INCDIRS) $(SRCS) -R -gui $(EXTRA_VCS_RUNOPTS)
+
+vcs-std: vcs_std
+vcs_std: version $(DPI_LIBS)
+	$(VCS) $(VCS_OPTS) +acc +vpi $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) \
+	$(UVM_HOME)/src/dpi/uvm_dpi.cc -CFLAGS -DVCS -R $(EXTRA_VCS_RUNOPTS)
+
+#-------------------------------------------------------------------------------
+clean:
+	@echo cleaning old simulation files and libraries...
+	@ -$(RM) INCA_libs csrc simv* work vlog.opt *.bak *.log .simvision ncsim* *.vpd transcript \
+	waves.shm *.wlf mylib lib DVEfiles ucli.key irun.key modelsim.ini *.vstf .restart* \
+	urgReport cov_work *.so vc_hdrs.h
+
+help:
+	@perldoc ${MAKEFILE_RULES}
+
+it:
+	./doit
+
+#TAF!

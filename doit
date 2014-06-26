@@ -1,0 +1,63 @@
+#!/bin/bash
+function analyze_uvm_objection_performance() {
+  local R=""
+  if [[ "$6" = "R=0" ]]; then R="r"; fi
+  header ${2}${R}
+  echo "------------------------------------------------------------------------------"
+  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6}"
+  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}.log"
+  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1 | tee ${SIM}+uvm-${2}${R}.log
+}
+
+function Doit() {
+  local ALL="1.1b 1.1c 1.1d 1.2r 1.2"
+  local LIST=""
+  local verbose=0
+  local LEVELS=3
+  local AGENTS=2
+  local COUNTS=1e9
+  local RIPPLE=1
+  local pause=0
+  local SIM=questa
+
+  while  [[ "${1}" =  -*     ]];do
+    if   [[ "${1}" = "-q"          ]]; then verbose=0
+    elif [[ "${1}" = "-v"          ]]; then verbose=1
+    elif [[ "${1}" = "-p"          ]]; then pause=${2};  shift;
+    elif [[ "${1}" = "-P"          ]]; then RIPPLE=${2};  shift;
+    elif [[ "${1}" = "-C"          ]]; then COUNTS=${2}; shift;
+    elif [[ "${1}" = "-D"          ]]; then AGENTS=${2}; shift;
+    elif [[ "${1}" = "-L"          ]]; then LEVELS=${2}; shift;
+    elif [[ "${1}" = "-S"          ]]; then SIM=${2}; shift;
+    fi
+    shift
+  done
+  while [[ $# != 0 ]]; do
+    LIST="$LIST ${1}"
+    shift
+  done
+  if [[ "$LIST" = "" ]]; then
+    LIST="$ALL"
+  fi
+  case $SIM in
+    questa) ;;
+    ius) ;;
+    vcs) ;;
+    *) echo "FATAL: Invalid simulator '$SIM' specified"; exit 1 ;;
+  esac
+
+
+  for V in $LIST; do
+    case "$V" in
+      #     0                                 1    2    3         4         5         6
+      1.1b) analyze_uvm_objection_performance $SIM 1.1b L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
+      1.1c) analyze_uvm_objection_performance $SIM 1.1c L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
+      1.1d) analyze_uvm_objection_performance $SIM 1.1d L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
+      1.2r) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=0       ;;
+      1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
+    esac
+    if [[ $pause != 0 ]]; then sleep $pause; fi
+  done
+}
+
+Doit "$@"
