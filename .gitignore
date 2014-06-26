@@ -40,9 +40,22 @@ bmake.*
 *-old
 *.old
 
+# Archives
+*.tar
+*.tbz
+*.tgz
+*.gz
+*.bz
+*.Z
+*.zip
+*.ZIP
+
 # xcode noise
 build/*
 *.pbxuser
 *.mode1v3
+
+# Simulator noise
+*.vstf
 
 # TAF!
