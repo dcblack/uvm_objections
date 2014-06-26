@@ -13,6 +13,16 @@ To run (default):
 
     % make it
 
+For more sophisticated runs,
+
+1. Read documentation
+
+    % perldoc doit
+
+2. Use custom make command:
+
+    % make it ARGS="-C 1e9 -L 4 -S vcs -T x 1.2r"
+
 Manifest
 --------
 
