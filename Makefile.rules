@@ -256,18 +256,22 @@ endif
 # CC          := $(lastword $(shell find $(QUESTA_HOME) -name 'gcc'))
   QUESTA_LIBS := $(QUESTA_HOME)/uvm-$(UVM_VER)$(UVM_SUB_VER)/$(TARGET_ARCH)/uvm_dpi
   QUESTA_OPTS := -novopt  $(EXTRA_QUESTA_OPTS)
-  $(info QUESTA_HOME=$(QUESTA_HOME)) 
+  $(info INFO: QUESTA_HOME=$(QUESTA_HOME)) 
 endif
 
 ifeq "$(findstring ius,$(MAKECMDGOALS))" "ius"
   SIMULATOR   := INCA
   IRUN        := irun
   IUS_HOME    := ${shell ncroot}
-  IUS_OPTS    := -64BIT $(EXTRA_IUS_OPTS)
+  ifeq "$(CPUWIDTH)" "64"
+    IUS_OPTS  := -64BIT $(EXTRA_IUS_OPTS)
+  else
+    IUS_OPTS  := $(EXTRA_IUS_OPTS)
+  endif
   CXX         := $(IUS_HOME)/tools/cdsgcc/gcc/bin/64bit/g++
   CC          := $(IUS_HOME)/tools/cdsgcc/gcc/bin/64bit/gcc
   LD_LIBRARY_PATH := $(IUS_HOME)/lib/64bit:$(LD_LIBRARY_PATH)
-  $(info IUS_HOME=$(IUS_HOME)) 
+  $(info INFO: IUS_HOME=$(IUS_HOME))
 endif
 
 
