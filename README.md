@@ -11,31 +11,43 @@ How to
 
 To run (default):
 
+``
     % make it
+``
 
 For more sophisticated runs,
 
 1. Read documentation:
 
+``
     % perldoc doit
+``
 
 2. Use custom make command:
 
+``
     % make it ARGS="-C 1e9 -L 4 -S vcs -T x 1.2r"
+``
 
 HINT: Use `screen` to run everything in background:
 
 1. To start a job:
 
+``
     % screen -d -m -L make it ARGS="..."
+``
 
 alternately:
 
+``
     % ./screenit ...
+``
 
 2. To view status:
 
+``
     % screen -ls
+``
 
 See manpage on `screen` for more information.
 
