@@ -29,6 +29,10 @@ HINT: Use `screen` to run everything in background:
 
     % screen -d -m -L make it ARGS="..."
 
+alternately:
+
+    % ./screenit ...
+
 2. To view status:
 
     % screen -ls
