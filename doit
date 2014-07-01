@@ -188,7 +188,21 @@ function Doit() {
   if [[ $pause -lt 10 ]]; then pause=10; fi # Minimum
 
 
+  let first=1
   for V in $LIST; do
+    # Pause between runs to allow clean interrupt
+    if [[ $first = 0 && $pause != 0 ]]; then
+      echo -n "Pausing $pause"
+      let i=$pause
+      while [[ $i -gt 0 ]]; do
+        echo -n "."
+        sleep 1;
+        let i--
+      done
+      echo ""
+    fi
+    let first=0
+
     case "$V" in
       #     0                                 1    2    3         4         5         6
       1.1b) analyze_uvm_objection_performance $SIM 1.1b L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
@@ -199,21 +213,11 @@ function Doit() {
       1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
     esac
     echo ""
-    if [[ $pause != 0 ]]; then
-      echo -n "Pausing $pause"
-      let i=$pause
-      while [[ $i -gt 0 ]]; do
-        echo -n "."
-        sleep 1;
-        let i--
-      done
-      echo ""
-    fi
-    echo "------------------------------------------------------------------------------"
-    echo "INFO: *** Don't forget to clean your messes ***"
-    echo "------------------------------------------------------------------------------"
-    echo ""
   done
+  echo "------------------------------------------------------------------------------"
+  echo "INFO: Don't forget to clean your messes..."
+  echo "------------------------------------------------------------------------------"
+  echo ""
 }
 
 ################################################################################
