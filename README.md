@@ -63,10 +63,24 @@ Manifest
 - `get_time.cpp` <- function to return CPU milliseconds timestamp
 - `get_time.svh` <- SystemVerilog DPI import
 - `performance.sv` <- This is the main SystemVerilog code
-- `questa+uvm-1.1b.log` -- results for Questa with UVM 1.1b
-- `questa+uvm-1.1c.log` -- results for Questa with UVM 1.1c
-- `questa+uvm-1.1d.log` -- results for Questa with UVM 1.1d
-- `questa+uvm-1.2.log`  -- results for Questa with UVM 1.2
-- `questa+uvm-1.2r.log` -- results for Questa with UVM 1.2
 
-That's all folks!
+Requirements
+------------
+The following are required to get this working (some obvious, some not so much):
+
+- Linux (CentOS, RedHat, etc.) capable of supporting simulators
+- UVM 1.1b thru 1.2 downloaded from Accellera.org
+- SystemVerilog simulator and license.
+  + Cadence Incisive
+  + Mentor Questa
+  + Synopsys VCS
+  + others should work with some finnagling, but are untested at present
+- C++ compiler
+  + gcc 4.1 or better
+- bash
+- perl5
+- git (unless you download the tarball from github)
+- screen (if you use it to launch scripts)
+- GNU make version 3.81 or better
+
+### That's all folks!
