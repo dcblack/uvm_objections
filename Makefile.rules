@@ -156,7 +156,6 @@ endif
 FINDBIN = $(firstword $(wildcard $(addsuffix /$1,/bin /usr/bin)))
 STD_FLAGS   := -fPIC
 START_DIR   := ${shell pwd}
-TARGET_ARCH := linux_x86_64
 SHELL       := /bin/sh
 MKDIR       := mkdir
 RM          := rm -rf
@@ -179,7 +178,7 @@ ifndef HOST_ARCH
   endif
   ifeq "${PLATFORM}" "Linux"
    ifeq "${MACHINE}" "x86_64"
-    HOST_ARCH := linux64
+    HOST_ARCH := linux_x86_64
    else
     HOST_ARCH := linux
    endif
@@ -218,6 +217,12 @@ else
   $(info INFO: PLATFORM=$(PLATFORM) MACHINE=$(MACHINE) TARGET_ARCH=$(TARGET_ARCH))
 endif
 
+ifeq "$(TARGET_ARCH)" "linux_x86_64"
+  CPUWIDTH := 64
+else
+  CPUWIDTH := 32
+endif
+
 ##############################################################################
 ##
 ##  Variables that point to specific tool installations and options
@@ -228,31 +233,41 @@ ifeq "$(PLATFORM)" "Darwin"
  CXX := clang++
  CC  := clang
 else
- CXX := g++
- CC  := gcc
+ CXX := g++ -m$(CPUWIDTH)
+ CC  := gcc -m$(CPUWIDTH)
 endif
 SIMULATOR := unknown_simulator
 
 
 ifeq "$(findstring questa,$(MAKECMDGOALS))" "questa"
 QVERILOG      := qverilog
+ifeq "adrastea" "$(shell hostname)"
+  TARGET_ARCH := linux
+   CXX := g++ -m32
+   CC  := gcc -m32
+endif
 ifdef MODEL_TECH
   QUESTA_HOME := $(MODEL_TECH)
 else
-  QUESTA_HOME := ${shell which vsim | sed -e's/\/$(TARGET_ARCH)\/vsim//'}
+  QUESTA_HOME := $(dir ${shell which vsim | sed -e's-/$(TARGET_ARCH)/-/-'})
 endif
   SIMULATOR   := QUESTA
 # CXX         := $(lastword $(shell find $(QUESTA_HOME) -name 'g++'))
 # CC          := $(lastword $(shell find $(QUESTA_HOME) -name 'gcc'))
   QUESTA_LIBS := $(QUESTA_HOME)/uvm-$(UVM_VER)$(UVM_SUB_VER)/$(TARGET_ARCH)/uvm_dpi
   QUESTA_OPTS := -novopt  $(EXTRA_QUESTA_OPTS)
+  $(info QUESTA_HOME=$(QUESTA_HOME)) 
 endif
 
 ifeq "$(findstring ius,$(MAKECMDGOALS))" "ius"
-  SIMULATOR   := IUS
+  SIMULATOR   := INCA
   IRUN        := irun
   IUS_HOME    := ${shell ncroot}
-  IUS_OPTS    := $(EXTRA_IUS_OPTS)
+  IUS_OPTS    := -64BIT $(EXTRA_IUS_OPTS)
+  CXX         := $(IUS_HOME)/tools/cdsgcc/gcc/bin/64bit/g++
+  CC          := $(IUS_HOME)/tools/cdsgcc/gcc/bin/64bit/gcc
+  LD_LIBRARY_PATH := $(IUS_HOME)/lib/64bit:$(LD_LIBRARY_PATH)
+  $(info IUS_HOME=$(IUS_HOME)) 
 endif
 
 
@@ -274,6 +289,7 @@ PHONIES := \
   questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
   vcs vcs_debug vcs_std\
   clean starting finished version it
+
 DFLT        := help
 
 .PHONY: $(PHONIES)
@@ -282,11 +298,19 @@ DEFAULT: $(DFLT)
 
 CXXFLAGS:=-D$(SIMULATOR) $(addprefix -D,$(DEFS)) -I$(UVM_HOME)/src
 
+SEP0:="--------------------------------------------------------------------------------"
+SEP1:="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+SEP2:="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+
 starting:
+	@echo $(SEP1)
 	@echo -n "TIMESTAMP: Starting at "; date
+	@echo $(SEP0)
 
 finished:
+	@echo $(SEP0)
 	@echo -n "TIMESTAMP: Finished at "; date
+	@echo $(SEP2)
 
 version:
 	@echo "INFO: UVM version: $(UVM_VER)$(UVM_SUB_VER)"
@@ -309,8 +333,10 @@ ius_debug: version $(DPI_LIBS)
 
 ius-std: ius_std
 ius_std: version $(DPI_LIBS)
+	@$(MAKE) starting
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(IRUN) $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -sv_lib uvm_dpi -loadpli $(IUS_HOME)/tools/uvm/uvm_lib/uvm_sv/lib/libuvmpli.so:uvm_pli_boot $(EXTRA_IUS_RUNOPTS)
+	@$(MAKE) finished
 
 ius-std-debug: ius_std_debug
 ius_std_debug: version $(DPI_LIBS)
@@ -327,8 +353,10 @@ questa_debug: version $(DPI_LIBS)
 
 questa-std: questa_std
 questa_std: version $(DPI_LIBS)
+	@$(MAKE) starting
 	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi $(EXTRA_QUESTA_RUNOPTS)
+	@$(MAKE) finished
 
 questa-std-debug: questa_std_debug
 questa_std_debug: version $(DPI_LIBS)
@@ -345,14 +373,14 @@ vcs_debug: version $(DPI_LIBS)
 
 vcs-std: vcs_std
 vcs_std: version $(DPI_LIBS)
+	@$(MAKE) starting
 	$(VCS) $(VCS_OPTS) +acc +vpi $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) \
-	@make starting
 	$(UVM_HOME)/src/dpi/uvm_dpi.cc -CFLAGS -DVCS -R $(EXTRA_VCS_RUNOPTS)
-	@make finished
+	@$(MAKE) finished
 
 #-------------------------------------------------------------------------------
 clean:
-	@echo cleaning old simulation files and libraries...
+	@echo Cleaning old simulation files and libraries...
 	@ -$(RM) INCA_libs csrc simv* work vlog.opt *.bak *.log .simvision ncsim* *.vpd transcript \
 	waves.shm *.wlf mylib lib DVEfiles ucli.key irun.key modelsim.ini *.vstf .restart* \
 	urgReport cov_work *.so vc_hdrs.h
