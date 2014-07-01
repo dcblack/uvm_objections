@@ -198,11 +198,6 @@ function Doit() {
       1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
       1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
     esac
-    #make clean
-    echo ""
-	 echo "------------------------------------------------------------------------------"
-    echo "INFO: Don't forget to clean your messes..."
-	 echo "------------------------------------------------------------------------------"
     echo ""
     if [[ $pause != 0 ]]; then
       echo -n "Pausing $pause"
@@ -214,6 +209,10 @@ function Doit() {
       done
       echo ""
     fi
+    echo "------------------------------------------------------------------------------"
+    echo "INFO: *** Don't forget to clean your messes ***"
+    echo "------------------------------------------------------------------------------"
+    echo ""
   done
 }
 
