@@ -9,8 +9,10 @@ INCDIRS = +incdir+.
 RUN_OPTS :=\
   '+uvm_set_config_int=*,level,$L' \
   '+uvm_set_config_int=*,drivers,$D' \
+  '+uvm_set_config_int=*,use_seq,$U' \
+  '+uvm_set_config_str=*,tr_len,$R' \
   '+uvm_set_config_string=*,count,$C' \
-  '+uvm_set_config_int=*,ripple,$R'
+  '+uvm_set_config_int=*,ripple,$P'
 
 EXTRA_QUESTA_OPTS = +define+AUTO_DMA_ON_STARTUP 
 EXTRA_QUESTA_RUNOPTS = -cvg63  $(RUN_OPTS)

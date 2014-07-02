@@ -20,7 +20,8 @@ package performance_pkg;
     uvm_barrier_pool global_barrier_pool;
     uvm_event        starting_event;
     uvm_barrier      finished_barrier;
-    longint count = 0;
+    longint          count = 0;
+    shortint         id = 0;
     //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
       super.new(name, parent);
@@ -36,10 +37,14 @@ package performance_pkg;
       starting_event = global_event_pool.get("starting");
       finished_barrier = global_barrier_pool.get("finished");
       assert(uvm_config_db#(longint)::get(this, "", "count", count));
+      assert(uvm_config_db#(longint)::get(this, "", "tr_len", tr_len));
+      tr_len >>= (4*id);
+      tr_len &= 'hF;
+      if (tr_len == 0) tr_len = 1;
       starting_event.wait_trigger();
-      repeat (count) begin
+      repeat (count/tr_len) begin
         phase.raise_objection(this, "raising");
-        #1ps;
+        #tr_len*1ps;
         phase.drop_objection(this, "lowering");
       end//repeat
       finished_barrier.wait_for();
@@ -72,6 +77,7 @@ package performance_pkg;
         driver = new[drivers];
         for (shortint unsigned i=0; i!=drivers; i++) begin
           driver[i] = Obj_driver_t::type_id::create($sformatf("driver[%0d]",i),this);
+          driver[i].id = i;
         end
       end
     endfunction : build_phase
@@ -95,22 +101,36 @@ package performance_pkg;
     endfunction
     //--------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-      longint  count  = 1e6; //< default
-      shortint levels = 2;    //< default
-      shortint drivers = 1;    //< default
-      string countstr = "";
+      longint  count    = 1e6; //< default
+      bit      use_seq  = 1;   //< default
+      shortint levels   = 2;   //< default
+      shortint drivers  = 1;   //< default
+      longint  tr_len   = 0;   //< default (0 = equal; else each nibble)
+      string   tempstr  = "";
+      int      status;
+      // Manage configuration
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "level", levels)); //<allow from command-line
       $display("levels=%0d",levels);
       uvm_config_db#(shortint)::set(null, "*", "level", levels);
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "drivers", drivers)); //<allow from command-line
       $display("drivers=%0d",drivers);
       uvm_config_db#(shortint)::set(null, "*", "drivers", drivers);
-      void'(uvm_config_db#(string)::get(this, "", "count", countstr)); //<allow from command-line
-      if (countstr != "") begin
-        count = 0 + countstr.atoreal();
+      void'(uvm_config_db#(string)::get(this, "", "count", tempstr)); //<allow from command-line
+      if (tempstr != "") begin
+        real t;
+        assert($sscanf(tempstr,"%g",t));
+        count = 0 + t;
       end
       $display("count=%0d",count);
       uvm_config_db#(longint)::set(null, "*", "count", count);
+      void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
+      uvm_config_db#(bit)::set(null, "*", "use_seq", use_seq);
+      void'(uvm_config_db#(string)::get(this, "", "tr_len", tempstr)); //<allow from command-line
+      if (tempstr != "") begin
+        assert($sscanf(tempstr,"%h",tr_len));
+      end
+      uvm_config_db#(longint)::set(null, "*", "tr_len", tr_len);
+      // Instantiate environment
       env = Obj_env_t::type_id::create("env",this);
       `uvm_info("", $sformatf("Created %s", get_full_name()), UVM_NONE)
     endfunction : build_phase
@@ -124,11 +144,13 @@ package performance_pkg;
       longint start, finish;
       shortint waiters;
       shortint drivers;
+      bit use_seq;
       bit mode = 1; //< default old way
       string mode_string = "";
       uvm_objection objection;
-      assert(uvm_config_db#(longint)::get(this, "", "count", count));
-      assert(uvm_config_db#(shortint)::get(this, "", "drivers", drivers));
+      assert(uvm_config_db#(longint)  ::get(this, "", "count",   count));
+      assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq", use_seq));
+      assert(uvm_config_db#(shortint) ::get(this, "", "drivers", drivers));
       objection = phase.get_objection();
       `ifdef UVM_POST_VERSION_1_1
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
@@ -148,7 +170,8 @@ package performance_pkg;
       starting_event.trigger();
       start = get_time();
       phase.raise_objection(this, "raising to start main sequence"); // simulate sequence start
-      #10ns;
+      #1ps;
+      if (use_seq) #(count-2)*1ps;
       phase.drop_objection(this, "lowering at end of main sequence"); // simulate sequence done
       finished_barrier.wait_for();
       finish = get_time();

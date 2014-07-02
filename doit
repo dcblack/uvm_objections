@@ -64,11 +64,23 @@ Propagate objections or not (affects 1.2 and above only)
 
 Quiet mode to suppress unnecessary output.
 
+=item B<-R> I<TRLEN>
+
+Specify transaction length to use. This has
+a special format using one hex digit for each
+driver. Example: 3_2_1 means a length of 3ps
+for driver 2, 2ps for driver 1, and 1ps for driver 0.
+Unspecified drivers get a value of 1ps.
+
 =item B<-S> questa|ius|vcs
 
 Specify simulator to use.
 
-=item B<-T> I<TAG>
+=item B<-U> 0|1
+
+Specify whether to use a full sequence (1) or a short 1ps sequence.
+
+=item B<-t> I<TAG>
 
 Specify a I<TAG> to include in log file name.
 
@@ -131,12 +143,12 @@ export TAG
 
 function analyze_uvm_objection_performance() {
   local R=""
-  if [[ "$6" = "R=0" ]]; then R="r"; fi
-  bin/header ${2}${R}
+  if [[ "$6" = "P=0" ]]; then P="r"; fi
+  bin/header ${2}${P}${TAG}
   echo "------------------------------------------------------------------------------"
-  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6}"                | tee ${SIM}+uvm-${2}${R}${TAG}-log.txt
-  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1" | tee -a ${SIM}+uvm-${2}${R}${TAG}-log.txt
-  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} 2>&1          | tee -a ${SIM}+uvm-${2}${R}${TAG}-log.txt
+  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8}"                | tee ${SIM}+uvm-${2}${R}${TAG}-log.txt
+  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1" | tee -a ${SIM}+uvm-${2}${P}${TAG}-log.txt
+  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1          | tee -a ${SIM}+uvm-${2}${P}${TAG}-log.txt
 }
 
 ################################################################################
@@ -149,25 +161,31 @@ function Doit() {
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
   local RIPPLE=$RIPPLE
+  local TR_LEN=$TR_LEN
+  local USESEQ=$USESEQ
   local SIM=$SIM
   if [[ "$LEVELS" = "" ]]; then LEVELS=3; fi
   if [[ "$AGENTS" = "" ]]; then AGENTS=2; fi
   if [[ "$COUNTS" = "" ]]; then COUNTS=21000000; fi
   if [[ "$RIPPLE" = "" ]]; then RIPPLE=1; fi
+  if [[ "$TR_LEN" = "" ]]; then TR_LEN=1; fi
+  if [[ "$USESEQ" = "" ]]; then USESEQ=1; fi
   if [[ "$SIM"    = "" ]]; then SIM="questa"; fi
 
   while  [[ "${1}" =  -* ]];do
     if   [[ "${1}" = "-q" ]]; then verbose=0;
-    elif [[ "${1}" = "-C" ]]; then COUNTS=${2}; shift;
-    elif [[ "${1}" = "-D" ]]; then AGENTS=${2}; shift;
     elif [[ "${1}" = "-h"     ]]; then Help;
     elif [[ "${1}" = "-help"  ]]; then Help;
     elif [[ "${1}" = "--help" ]]; then Help;
+    elif [[ "${1}" = "-p" ]]; then pause=${2};  shift;
+    elif [[ "${1}" = "-t" ]]; then TAG=${2};    shift;
+    elif [[ "${1}" = "-C" ]]; then COUNTS=${2}; shift;
+    elif [[ "${1}" = "-D" ]]; then AGENTS=${2}; shift;
     elif [[ "${1}" = "-L" ]]; then LEVELS=${2}; shift;
     elif [[ "${1}" = "-P" ]]; then RIPPLE=${2}; shift;
     elif [[ "${1}" = "-S" ]]; then SIM=${2};    shift;
-    elif [[ "${1}" = "-T" ]]; then TAG=${2};    shift;
-    elif [[ "${1}" = "-p" ]]; then pause=${2};  shift;
+    elif [[ "${1}" = "-R" ]]; then TR_LEN=${2}; shift;
+    elif [[ "${1}" = "-U" ]]; then USESEQ=${2}; shift;
     elif [[ "${1}" = "-v" ]]; then verbose=1;
     fi
     shift
@@ -205,12 +223,12 @@ function Doit() {
 
     case "$V" in
       #     0                                 1    2    3         4         5         6
-      1.1b) analyze_uvm_objection_performance $SIM 1.1b L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
-      1.1c) analyze_uvm_objection_performance $SIM 1.1c L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
-      1.1d) analyze_uvm_objection_performance $SIM 1.1d L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
-      1.2r) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=0       ;;
-      1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
-      1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS R=$RIPPLE ;;
+      1.1b) analyze_uvm_objection_performance $SIM 1.1b L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
+      1.1c) analyze_uvm_objection_performance $SIM 1.1c L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
+      1.1d) analyze_uvm_objection_performance $SIM 1.1d L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
+      1.2r) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS P=0       U=$USESEQ R=$TR_LEN;;
+      1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
+      1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
     esac
     echo ""
   done
