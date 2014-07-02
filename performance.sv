@@ -125,11 +125,13 @@ package performance_pkg;
       uvm_config_db#(longint)::set(null, "*", "count", count);
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
       uvm_config_db#(bit)::set(null, "*", "use_seq", use_seq);
+      $display("use_seq=%0d",use_seq);
       void'(uvm_config_db#(string)::get(this, "", "tr_len", tempstr)); //<allow from command-line
       if (tempstr != "") begin
         assert($sscanf(tempstr,"%h",tr_len));
       end
       uvm_config_db#(longint)::set(null, "*", "tr_len", tr_len);
+      $display("tr_len=%0d",tr_len);
       // Instantiate environment
       env = Obj_env_t::type_id::create("env",this);
       `uvm_info("", $sformatf("Created %s", get_full_name()), UVM_NONE)
@@ -141,21 +143,25 @@ package performance_pkg;
     //--------------------------------------------------------------------------
     task main_phase(uvm_phase phase);
       longint count;
+      longint tr_len;
       longint start, finish;
       shortint waiters;
       shortint drivers;
       bit use_seq;
       bit mode = 1; //< default old way
-      string mode_string = "";
+      string features = "";
       uvm_objection objection;
       assert(uvm_config_db#(longint)  ::get(this, "", "count",   count));
       assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq", use_seq));
+      assert(uvm_config_db#(longint ) ::get(this, "", "tr_len", tr_len));
       assert(uvm_config_db#(shortint) ::get(this, "", "drivers", drivers));
       objection = phase.get_objection();
       `ifdef UVM_POST_VERSION_1_1
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
       objection.set_propagate_mode(mode);
-      if (mode == 0) mode_string = " without propagation";
+      if (use_seq == 0) features = {features, "; short-seq"};
+      if (tr_len != 0)  features = {features, $sformatf("; tr%0X",tr_len)};
+      if (mode == 0)    features = {features, "; non-propagating"};
       `endif
       objection.set_drain_time(uvm_top,10ns);
       uvm_top.set_timeout(1000ms);
@@ -165,7 +171,7 @@ package performance_pkg;
       #1ps;
       waiters = starting_event.get_num_waiters();
       finished_barrier.set_threshold(waiters+1);
-      `uvm_info("test1:objections", $sformatf("Running %0d x %s iterations%s", drivers, formatn(count),mode_string), UVM_NONE)
+      `uvm_info("test1:objections", $sformatf("Running %0d x %s iterations%s", drivers, formatn(count),features), UVM_NONE)
       phase.drop_objection(this, "lowering after setup");
       starting_event.trigger();
       start = get_time();
@@ -180,7 +186,7 @@ package performance_pkg;
                           , `UVM_VERSION_STRING
                           , formatn(drivers*count)
                           , formatn(finish-start)
-                          , mode_string
+                          , features
                           )
                , UVM_NONE
                )
