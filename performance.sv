@@ -1,8 +1,17 @@
 `include "uvm_macros.svh"
 
+// This code has the following run-time configuration variables:
+//
+// +uvm_set_config_int=*,level,NUMBER specifies depth of hierarchy to drivers
+// +uvm_set_config_int=*,drivers,NUMBER specifies how many drivers to instantiate
+// +uvm_set_config_int=*,use_seq,BIT specifies if sequence is long (1) or short (0)
+// +uvm_set_config_string=*,tr_len,HEX specifies transaction lengths in nybbles
+// +uvm_set_config_string=*,count,NUMBER specifies how many 1ps transactions to run
+// +uvm_set_config_int=*,ripple,BIT specifies for UVM 1.2 whether to propagate objections
+
 package performance_pkg;
 
-  timeunit 1ns;
+  timeunit 1ps;
   timeprecision 1ps;
 
   import uvm_pkg::*;
@@ -34,6 +43,8 @@ package performance_pkg;
     endfunction : build_phase
     //--------------------------------------------------------------------------
     task main_phase(uvm_phase phase);
+      longint tr_len;
+      time delay;
       starting_event = global_event_pool.get("starting");
       finished_barrier = global_barrier_pool.get("finished");
       assert(uvm_config_db#(longint)::get(this, "", "count", count));
@@ -41,10 +52,11 @@ package performance_pkg;
       tr_len >>= (4*id);
       tr_len &= 'hF;
       if (tr_len == 0) tr_len = 1;
+      delay = tr_len;
       starting_event.wait_trigger();
       repeat (count/tr_len) begin
         phase.raise_objection(this, "raising");
-        #tr_len*1ps;
+        #(delay);
         phase.drop_objection(this, "lowering");
       end//repeat
       finished_barrier.wait_for();
@@ -143,6 +155,7 @@ package performance_pkg;
     //--------------------------------------------------------------------------
     task main_phase(uvm_phase phase);
       longint count;
+      time delay;
       longint tr_len;
       longint start, finish;
       shortint waiters;
@@ -172,12 +185,13 @@ package performance_pkg;
       waiters = starting_event.get_num_waiters();
       finished_barrier.set_threshold(waiters+1);
       `uvm_info("test1:objections", $sformatf("Running %0d x %s iterations%s", drivers, formatn(count),features), UVM_NONE)
+      delay = (count-2);
       phase.drop_objection(this, "lowering after setup");
       starting_event.trigger();
       start = get_time();
       phase.raise_objection(this, "raising to start main sequence"); // simulate sequence start
       #1ps;
-      if (use_seq) #(count-2)*1ps;
+      if (use_seq) #(delay);
       phase.drop_objection(this, "lowering at end of main sequence"); // simulate sequence done
       finished_barrier.wait_for();
       finish = get_time();
@@ -199,7 +213,7 @@ endpackage
 ////////////////////////////////////////////////////////////////////////////////
 module top;
 
-  timeunit 1ns;
+  timeunit 1ps;
   timeprecision 1ps;
 
   import uvm_pkg::*;
