@@ -142,96 +142,124 @@ exit 0
 export TAG
 
 function analyze_uvm_objection_performance() {
-  local R=""
-  if [[ "$6" = "P=0" ]]; then P="r"; fi
-  bin/header ${2}${P}${TAG}
+  #   1   2    3        4        5       6      7        8
+  # $SIM VERS L=LEVELS A=AGENTS C=COUNT P=PROP U=USESEQ R=TR_LEN;;
+  local T="$2"
+  if [[ "$6" = "P=0" ]]; then T="$T-p"; else T="$T+p";  fi
+  if [[ "$7" = "U=0" ]]; then T="$T-u"; else T="$T+u";  fi
+  if [[ "$8" = "R=0" ]]; then T="$T-r"; else T="$T+r";  fi
+  local t
+  t=$(echo "$3"|sed -e s/=//); T="$T$t"
+  t=$(echo "$4"|sed -e s/=//); T="$T$t"
+  t="$1"
+  case "$t" in
+    questa) T="q$T" ;;
+    ius   ) T="i$T" ;;
+    vcs   ) T="v$T" ;;
+    aldec ) T="a$T" ;;
+    *     ) T="_$T" ;;
+  esac
+  T="$T$TAG"
+  bin/header "$T"
   echo "------------------------------------------------------------------------------"
-  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8}"                | tee ${SIM}+uvm-${2}${R}${TAG}-log.txt
-  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1" | tee -a ${SIM}+uvm-${2}${P}${TAG}-log.txt
-  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1          | tee -a ${SIM}+uvm-${2}${P}${TAG}-log.txt
+  echo "analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8}"                | tee    $T-log.txt
+  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1" | tee -a $T-log.txt
+  env UVM_HOME=/eda/uvm/uvm-${2} make ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1          | tee -a $T-log.txt
 }
 
 ################################################################################
 function Doit() {
-  local ALL="1.1b 1.1c 1.1d 1.2r 1.2"
-  local LIST=""
+  local ALL_VERSIONS="1.1b 1.1c 1.1d 1.2r 1.2"
+  local VERSIONS=""
   local verbose=0
   local pause=10
   local LEVELS=$LEVELS
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
-  local RIPPLE=$RIPPLE
+  local PROPAGATE=$PROPAGATE
   local TR_LEN=$TR_LEN
   local USESEQ=$USESEQ
   local SIM=$SIM
-  if [[ "$LEVELS" = "" ]]; then LEVELS=3; fi
-  if [[ "$AGENTS" = "" ]]; then AGENTS=2; fi
-  if [[ "$COUNTS" = "" ]]; then COUNTS=21000000; fi
-  if [[ "$RIPPLE" = "" ]]; then RIPPLE=1; fi
-  if [[ "$TR_LEN" = "" ]]; then TR_LEN=1; fi
-  if [[ "$USESEQ" = "" ]]; then USESEQ=1; fi
-  if [[ "$SIM"    = "" ]]; then SIM="questa"; fi
+  if [[ "$LEVELS" = ""    ]]; then LEVELS="3 10"     ; fi
+  if [[ "$AGENTS" = ""    ]]; then AGENTS="2"        ; fi
+  if [[ "$COUNTS" = ""    ]]; then COUNTS="21000000" ; fi
+  if [[ "$PROPAGATE" = "" ]]; then PROPAGATE="1"     ; fi
+  if [[ "$TR_LEN" = ""    ]]; then TR_LEN="0 12"     ; fi
+  if [[ "$USESEQ" = ""    ]]; then USESEQ="0 1"      ; fi
+  if [[ "$SIM"    = ""    ]]; then SIM="all"         ; fi
 
   while  [[ "${1}" =  -* ]];do
-    if   [[ "${1}" = "-q" ]]; then verbose=0;
+    if   [[ "${1}" = "-q"     ]]; then verbose=0;
     elif [[ "${1}" = "-h"     ]]; then Help;
     elif [[ "${1}" = "-help"  ]]; then Help;
     elif [[ "${1}" = "--help" ]]; then Help;
-    elif [[ "${1}" = "-p" ]]; then pause=${2};  shift;
-    elif [[ "${1}" = "-t" ]]; then TAG=${2};    shift;
-    elif [[ "${1}" = "-C" ]]; then COUNTS=${2}; shift;
-    elif [[ "${1}" = "-D" ]]; then AGENTS=${2}; shift;
-    elif [[ "${1}" = "-L" ]]; then LEVELS=${2}; shift;
-    elif [[ "${1}" = "-P" ]]; then RIPPLE=${2}; shift;
-    elif [[ "${1}" = "-S" ]]; then SIM=${2};    shift;
-    elif [[ "${1}" = "-R" ]]; then TR_LEN=${2}; shift;
-    elif [[ "${1}" = "-U" ]]; then USESEQ=${2}; shift;
-    elif [[ "${1}" = "-v" ]]; then verbose=1;
+    elif [[ "${1}" = "-p"     ]]; then pause=${2};  shift;
+    elif [[ "${1}" = "-t"     ]]; then TAG=${2};    shift;
+    elif [[ "${1}" = "-C"     ]]; then COUNTS=${2}; shift;
+    elif [[ "${1}" = "-D"     ]]; then AGENTS=${2}; shift;
+    elif [[ "${1}" = "-L"     ]]; then LEVELS=${2}; shift;
+    elif [[ "${1}" = "-P"     ]]; then PROPAGATE=${2}; shift;
+    elif [[ "${1}" = "-S"     ]]; then SIM=${2};    shift;
+    elif [[ "${1}" = "-R"     ]]; then TR_LEN=${2}; shift;
+    elif [[ "${1}" = "-U"     ]]; then USESEQ=${2}; shift;
+    elif [[ "${1}" = "-v"     ]]; then verbose=1;
     fi
     shift
   done
-  while [[ $# != 0 ]]; do # Add user specified targets
-    LIST="$LIST ${1}"
+  while [[ $# -gt 0 ]]; do # Add user specified targets
+    VERSIONS="$VERSIONS ${1}"
     shift
   done
-  if [[ "$LIST" = "" ]]; then # Use default list
-    LIST="$ALL"
+  if [[ "$VERSIONS" = "" ]]; then # Use default list
+    VERSIONS="$ALL_VERSIONS"
   fi
-  case $SIM in # Legal simulator target prefixes
-    questa) ;;
-    ius) ;;
-    vcs) ;;
+  case "$SIM" in # Legal simulator target prefixes
+    questa|ius|vcs) SIMS="$SIM" ;;
+    all)            SIMS="questa ius vcs" ;;
     *) echo "FATAL: Invalid simulator '$SIM' specified"; exit 1 ;;
   esac
   if [[ $pause -lt 10 ]]; then pause=10; fi # Minimum
 
-
   let first=1
-  for V in $LIST; do
-    # Pause between runs to allow clean interrupt
-    if [[ $first = 0 && $pause != 0 ]]; then
-      echo -n "Pausing $pause"
-      let i=$pause
-      while [[ $i -gt 0 ]]; do
-        echo -n "."
-        sleep 1;
-        let i--
-      done
-      echo ""
-    fi
-    let first=0
+  for S in $SIMS; do
+    for L in $LEVELS; do
+      for A in $AGENTS; do
+        for U in $USESEQ; do
+          for R in $TR_LEN; do
+            for V in $VERSIONS; do
+              #{
+              # Pause between runs to allow clean interrupt
+              if [[ $first = 0 && $pause != 0 ]]; then
+                echo -n "Pausing $pause"
+                let i=$pause
+                while [[ $i -gt 0 ]]; do
+                  echo -n "."
+                  sleep 1;
+                  let i--
+                done
+                echo ""
+              fi
+              let first=0
 
-    case "$V" in
-      #     0                                 1    2    3         4         5         6
-      1.1b) analyze_uvm_objection_performance $SIM 1.1b L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
-      1.1c) analyze_uvm_objection_performance $SIM 1.1c L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
-      1.1d) analyze_uvm_objection_performance $SIM 1.1d L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
-      1.2r) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS P=0       U=$USESEQ R=$TR_LEN;;
-      1.2 ) analyze_uvm_objection_performance $SIM 1.2  L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
-      1.* ) analyze_uvm_objection_performance $SIM $V   L=$LEVELS D=$AGENTS C=$COUNTS P=$RIPPLE U=$USESEQ R=$TR_LEN;;
-    esac
-    echo ""
+              case "$V" in
+                #     0                                 1    2    3         4         5         6
+                1.1b) analyze_uvm_objection_performance $S 1.1b L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R ;;
+                1.1c) analyze_uvm_objection_performance $S 1.1c L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R ;;
+                1.1d) analyze_uvm_objection_performance $S 1.1d L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R ;;
+                1.2r) analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=0          U=$U R=$R ;;
+                1.2 ) analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R ;;
+                1.* ) analyze_uvm_objection_performance $S $V   L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R ;;
+                   *) echo "ERROR: Weird UVM version '$V'" ; exit 1 ;;
+              esac
+              echo ""
+              #}
+            done
+          done
+        done
+      done
+    done
   done
+
   echo "------------------------------------------------------------------------------"
   echo "INFO: Don't forget to clean your messes..."
   echo "------------------------------------------------------------------------------"
@@ -239,4 +267,8 @@ function Doit() {
 }
 
 ################################################################################
-Doit "$@"
+if [[ $# != 0 ]]; then
+  Doit "$@"
+else
+  Doit
+fi
