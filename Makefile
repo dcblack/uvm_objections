@@ -6,25 +6,36 @@ SRCS = formatn.cpp get_time.cpp performance.sv
 
 INCDIRS = +incdir+.
 
-RUN_OPTS :=\
-  '+uvm_set_config_int=*,level,$L' \
-  '+uvm_set_config_int=*,drivers,$D' \
-  '+uvm_set_config_int=*,use_seq,$U' \
-  '+uvm_set_config_str=*,tr_len,$R' \
-  '+uvm_set_config_string=*,count,$C' \
-  '+uvm_set_config_int=*,ripple,$P'
+ifdef L
+  RUN_OPTS+='+uvm_set_config_int=*,level,$L' 
+endif
+ifdef A
+  RUN_OPTS+='+uvm_set_config_int=*,drivers,$A' 
+endif
+ifdef U
+  RUN_OPTS+='+uvm_set_config_int=*,use_seq,$U' 
+endif
+ifdef R
+  RUN_OPTS+='+uvm_set_config_string=*,tr_len,$R' 
+endif
+ifdef C
+  RUN_OPTS+='+uvm_set_config_string=*,count,$C' 
+endif
+ifdef P
+  RUN_OPTS+='+uvm_set_config_int=*,ripple,$P' 
+endif
 
-EXTRA_QUESTA_OPTS = +define+AUTO_DMA_ON_STARTUP 
-EXTRA_QUESTA_RUNOPTS = -cvg63  $(RUN_OPTS)
-EXTRA_IUS_OPTS = +define+AUTO_DMA_ON_STARTUP 
-EXTRA_IUS_RUNOPTS = -coverage all -covoverwrite  $(RUN_OPTS)
-EXTRA_VCS_OPTS = +define+AUTO_DMA_ON_STARTUP 
-EXTRA_VCS_RUNOPTS = $(RUN_OPTS)
+EXTRA_QUESTA_OPTS := 
+EXTRA_QUESTA_RUNOPTS := $(RUN_OPTS)
+EXTRA_IUS_OPTS := 
+EXTRA_IUS_RUNOPTS := $(RUN_OPTS)
+EXTRA_VCS_OPTS := 
+EXTRA_VCS_RUNOPTS := $(RUN_OPTS)
 
-# Allow for overrides locally, but normally use ${HLDW}/etc
-RULEDIRS:= . .. ../.. ../../.. ../../../.. ${HLDW}/etc
-RULES := $(addsuffix /etc/Makefile.rules,${RULEDIRS})
-RULES += $(addsuffix /Makefile.rules,${RULEDIRS})
+# Find Makefiles.rules either in etc/ or in ./ somewhere in hierarchy
+RULE_DIRS:= . .. ../.. ../../.. ../../../..
+RULES := $(addsuffix /etc/Makefile.rules,${RULE_DIRS})
+RULES += $(addsuffix /Makefile.rules,${RULE_DIRS})
 RULES := $(firstword $(wildcard ${RULES}))
 $(info INFO: Including ${RULES})
 include ${RULES}
