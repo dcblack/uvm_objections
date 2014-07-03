@@ -1,4 +1,4 @@
 #!/bin/bash
 
-echo "screen -m -d -L make it ARGS='$*'"
-screen -m -d -L make it ARGS="$*"
+echo "screen -m -d make it ARGS='$*'"
+screen -m -d make it ARGS="$*"
