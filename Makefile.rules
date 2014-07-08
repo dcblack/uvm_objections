@@ -67,7 +67,19 @@ This is the default target.
 
 =item B<it>
 
-Run default set of tests.
+Run default set of tests. Also calls B<starting>, B<finished>, B<notify>.
+
+=item B<starting>
+
+Wall clock timestamp with label "Starting at".
+
+=item B<finished>
+
+Wall clock timestamp with label "Finished at".
+
+=item B<notify>
+
+Announces completion, and sends e-mail if MAILTO is defined.
 
 =item B<ius>
 
@@ -122,6 +134,11 @@ Remove automatically generated files and libraries from (old) simulations.
 Display UVM version
 
 =back
+
+=head1 ENVIRONMENT
+
+If the environment variable or macro MAILTO is defined, the notify target will send e-mail announcing
+comletion.
 
 =head1 AUTHOR
 
@@ -291,7 +308,7 @@ PHONIES := \
   ius ius_debug ius_std ius_std_debug ius-debug ius-std ius-std-debug\
   questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
   vcs vcs_debug vcs_std\
-  clean starting finished version it
+  clean starting finished version notify it
 
 DFLT        := help
 
@@ -305,14 +322,22 @@ SEP0:="-------------------------------------------------------------------------
 SEP1:="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
 SEP2:="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 
+HOSTNAME:=$(shell hostname)
+notify:
+ifdef MAILTO
+	@echo "Completed make $(MAKECMDGOALS)" | Mail -s '$(HOSTNAME) finished job' $(MAILTO)
+else
+	@echo "Completed make $(MAKECMDGOALS)"
+endif
+
 starting:
 	@echo $(SEP1)
-	@echo -n "TIMESTAMP: Starting at "; date
+	@echo -n "TIMESTAMP: Starting at "; date '+%s  %a %b %d %T %Z %Y'
 	@echo $(SEP0)
 
 finished:
 	@echo $(SEP0)
-	@echo -n "TIMESTAMP: Finished at "; date
+	@echo -n "TIMESTAMP: Finished at "; date '+%s  %a %b %d %T %Z %Y'
 	@echo $(SEP2)
 
 version:
@@ -393,5 +418,6 @@ help:
 
 it:
 	./doit ${ARGS}
+	@$(MAKE) notify
 
 #TAF!
