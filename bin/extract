@@ -2,20 +2,29 @@
 eval 'exec perl -S $0 ${1+"$@"}' # vim600:sw=2:tw=0
   if 0;#running_under_some_shell
 
-# @(#)$Info: header - Variation of banner tool for horizontal banners. $ {{{
+# @(#)$Info: Extract data from simulation runs into tabular format. $ {{{
 #
-# @(#)$Email: <dcblack@hldwizard.com>. $
+# @(#)$Email: <david.black@doulos.com>. $
+# @(#)$License: Apache 2.0 $
+
 require 5.0;
 use strict;
-#use English;
-#use FindBin qw($RealBin $RealScript);
+use FindBin qw($RealBin $RealScript);
 use FileHandle;
 STDOUT->autoflush(1);
 STDERR->autoflush(1);
 
-# TIMESTAMP: Starting at  1404420819 Thu Jul  3 21:53:39 BST 2014
-# UVM_INFO performance.sv(206) @ 21000001: uvm_test_top [test1:objections] RESULT: UVM-1.1c objected 42,000,000 times in 185,460 ms
-# TIMESTAMP: Finished at  1404421013 Thu Jul  3 21:56:53 BST 2014
+if (scalar @ARGV == 0) {
+  printf "USAGE: %s/%s LOGFILE >table.csv\n",$RealBin,$RealScript;
+  exit 0;
+}
+
+# Sample input:
+#   TIMESTAMP: Starting at  1404420819 Thu Jul  3 21:53:39 BST 2014
+#   UVM_INFO performance.sv(206) @ 21000001: uvm_test_top [test1:objections] RESULT: UVM-1.1c objected 42,000,000 times in 185,460 ms
+#   TIMESTAMP: Finished at  1404421013 Thu Jul  3 21:56:53 BST 2014
+# Sample output:
+#   i1.1c-u0r0x0L03a2, 42000000, 185.460, 194
 
 for my $filename (@ARGV) {
   my $fh;
@@ -41,7 +50,7 @@ for my $filename (@ARGV) {
       $objected =~ s{,}{}g;
       $elapsed =~ s{,}{}g;
       $wall = $finished - $starting;
-      printf "%s %d %1.3f %d\n",$base,$objected,$elapsed/1000,$wall;
+      printf "%s, %d, %1.3f, %d\n",$base,$objected,$elapsed/1000,$wall;
     }#endif
   }#endwhile
   close $fh;
