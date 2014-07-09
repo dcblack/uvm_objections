@@ -25,7 +25,10 @@ ifdef P
   RUN_OPTS+='+uvm_set_config_int=*,ripple,$P' 
 endif
 ifdef X
-  RUN_OPTS+='+uvm_set_config_int=*,switching,$X' 
+  RUN_OPTS+='+uvm_set_config_string=*,switching,$X' 
+endif
+ifdef OPTS
+  RUN_OPTS+=${OPTS}
 endif
 
 EXTRA_QUESTA_OPTS := 
