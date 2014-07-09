@@ -157,36 +157,50 @@ not_really=0
 function Analyze_uvm_objection_performance() {
   #   1   2    3        4        5       6      7        8        9
   # $SIM VERS L=LEVELS A=AGENTS C=COUNT P=PROP U=USESEQ R=TR_LEN X=SWITCHING
+  local SIM=$1 VERS=$2 LVLS=$3 AGTS=$4 CNT=$5 PROP=$6 U=$7 R=$8 X=$9
+  shift; shift
+  local var val
+  for arg in $@; do
+    if [[ $arg =~ [A-Za-z]=* ]]; then
+      var=$(echo "$arg"|perl -pe 's/=.*//')
+      val=$(echo "$arg"|perl -pe 's/.*=//')
+      local $var=$val
+    fi
+  done
   local clean='clean'
-  local T="$2"
-  if [[ ${#2} = 3    ]]; then T="${T}_";                  fi
-  if [[ "$6" = "P=0" ]]; then T="${T}p"; else T="${T}P";  fi
-  if [[ "$7" = "U=0" ]]; then T="${T}u"; else T="${T}U";  fi
-  #f [[ "$8" = "R=0" ]]; then T="${T}r"; else T="${T}R";  fi
+  local LOG="$VERS"
+  if [[ ${#VERS} = 3    ]]; then
+    if [[ "$P" = 0 ]]; then
+      LOG="${LOG}_-";
+    else
+      LOG="${LOG}+-";
+    fi
+  fi
   local t
-  t=$(echo "$3"|perl -pe 's/=//;s/([L])([1-9])A/${1}0${2}A/'); T="$T$t"
-  t=$(echo "$4"|perl -pe 's/=//'); T="$T$t"
-  t="$1"
-  case "$t" in
-    questa) T="q$T" ;;
-    ius   ) T="i$T" ;;
-    vcs   ) T="v$T" ;;
-    aldec ) T="a$T" ;;
-    *     ) T="_$T" ;;
+  t=$(echo "U=$U"|perl -pe 's/=//'); LOG="$LOG$t"
+  t=$(echo "R=$R"|perl -pe 's/=//'); LOG="$LOG$t"
+  t=$(echo "X=$X"|perl -pe 's/=//'); LOG="$LOG$t"
+  t=$(echo "L=$L%"|perl -pe 's/=//;s/([L])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "A=$A"|perl -pe 's/=//'); LOG="$LOG$t"
+  case "$SIM" in
+    questa) LOG="q$LOG" ;;
+    ius   ) LOG="i$LOG" ;;
+    vcs   ) LOG="v$LOG" ;;
+    aldec ) LOG="a$LOG" ;;
+    *     ) LOG="_$LOG" ;;
   esac
-  T="$T$TAG"
+  LOG="$(echo $LOG|tr AXUR axur)" ; # force to lowercase
+  LOG="$LOG$TAG"
   if [[ $not_really = 0 ]]; then
-    bin/header "$T"
+    bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
-    echo "Analyze_uvm_objection_performance ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8}"                     | tee    $T.txt
+    echo "Analyze_uvm_objection_performance ${SIM} ${VERS} $*"                          | tee    $LOG.txt
+    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* 2>&1" | tee -a $LOG.txt
+    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} "$@" 2>&1        | tee -a $LOG.txt
   else
-    T='/dev/null'
+    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* 2>&1  | tee   $LOG.txt"
   fi
-  echo "% env UVM_HOME=/eda/uvm/uvm-${2} make $clean ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1" | tee -a $T.txt
-  if [[ $not_really = 0 ]]; then
-    env UVM_HOME=/eda/uvm/uvm-${2} make $clean ${1}_std V=${2} ${3} ${4} ${5} ${6} ${7} ${8} 2>&1        | tee -a $T.txt
-  fi
-}
+} #end Analyze_uvm_objection_performance
 
 ################################################################################
 function Doit() {
@@ -203,6 +217,7 @@ function Doit() {
   local SIM=$SIM
   local SWITCHING=$SWITCHING
   local first_only=0
+  local OPTS
   if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
   if [[ "$AGENTS"    = "" ]]; then AGENTS="2 4"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
@@ -212,7 +227,7 @@ function Doit() {
   if [[ "$SIM"       = "" ]]; then SIM="all"         ; fi
   if [[ "$SWITCHING" = "" ]]; then SWITCHING="1"     ; fi
 
-  while  [[ "${1}" =  -* ]];do
+  while  [[ "${1}" =  [+-]* ]];do
     if   [[ "${1}" = "-1"     ]]; then first_only=1;
     elif [[ "${1}" = "-q"     ]]; then verbose=0;
     elif [[ "${1}" = "-h"     ]]; then Help;
@@ -230,6 +245,7 @@ function Doit() {
     elif [[ "${1}" = "-U"     ]]; then USESEQ=${2};    shift;
     elif [[ "${1}" = "-X"     ]]; then SWITCHING=${2}; shift;
     elif [[ "${1}" = "-v"     ]]; then verbose=1;
+    else                               OPTS="$OPTS ${1}"
     fi
     shift
   done
@@ -237,7 +253,8 @@ function Doit() {
   while [[ $# -gt 0 ]]; do # Add user specified targets
     case "$1" in
       all|aldec|cadence|mentor|synopsys|modelsim|questa|ius|vcs|riviera) SIMS="${SIMS} $1" ;;
-      *) VERSIONS="$VERSIONS $1"
+      +*) OPTS="$OPTS $1" ;;
+       *) VERSIONS="$VERSIONS $1" ;;
     esac
     shift
   done
@@ -286,19 +303,19 @@ function Doit() {
                 let first=0
 
                 case "$V" in
-                  #     0                                 1    2    3         4         5         6
-                  1.1b) Analyze_uvm_objection_performance $S 1.1b L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X ;;
-                  1.1c) Analyze_uvm_objection_performance $S 1.1c L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X ;;
-                  1.1d) Analyze_uvm_objection_performance $S 1.1d L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X ;;
-                  1.2r) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=0          U=$U R=$R X=$X ;;
-                  1.2 ) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X ;;
-                  1.* ) Analyze_uvm_objection_performance $S $V   L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X ;;
+                  #     0                                 1    2   3         4         5            6    7    8
+                  1.1b) Analyze_uvm_objection_performance $S 1.1b L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
+                  1.1c) Analyze_uvm_objection_performance $S 1.1c L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
+                  1.1d) Analyze_uvm_objection_performance $S 1.1d L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
+                  1.2r) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=0          U=$U R=$R X=$X OPTS="$OPTS" ;;
+                  1.2 ) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
+                  1.* ) Analyze_uvm_objection_performance $S $V   L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
                      *) echo "ERROR: Weird UVM version '$V'" ; exit 1 ;;
                 esac
                 if [[ $not_really = 0 ]]; then
                   echo ""
                 fi
-                if [[ $first_only = 0 ]]; then
+                if [[ $first_only = 1 ]]; then
                   break 42
                 fi
               done
@@ -310,10 +327,10 @@ function Doit() {
   done
 
   echo "------------------------------------------------------------------------------"
-  echo "INFO: Don't forget to clean your messes..."
+  echo "INFO: Don't forget to clean-up simulator temporaries..."
   echo "------------------------------------------------------------------------------"
   echo ""
-}
+} #end Doit
 
 ################################################################################
 if [[ $# != 0 ]]; then
