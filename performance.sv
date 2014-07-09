@@ -24,6 +24,8 @@ package performance_pkg;
 
   typedef longint tr_len_t;
 
+  longint unsigned measured_objections = 0;
+
   //////////////////////////////////////////////////////////////////////////////
   //
   //     #     ####  ##### #     # #######
@@ -72,6 +74,7 @@ package performance_pkg;
       tr_len >>= (4*id);
       tr_len &= 'hF;
       if (tr_len <= 0) tr_len = 1; // always at least one
+      measured_objections += count/tr_len;
       starting_event.wait_trigger();
       if (switching == 0) #1;
       repeat (count/tr_len) begin
@@ -241,6 +244,7 @@ package performance_pkg;
       `uvm_info("test1:objections", $sformatf("Running %0d x %s iterations%s", drivers, formatn(count),features), UVM_NONE)
       delay = (count-2);
       phase.drop_objection(this, "lowering after setup");
+      measured_objections += 1;
       starting_event.trigger();
       start = get_time();
       phase.raise_objection(this, "raising to start main sequence"); // simulate sequence start
@@ -250,9 +254,9 @@ package performance_pkg;
       finished_barrier.wait_for();
       finish = get_time();
       `uvm_info("test1:objections"
-               , $sformatf("RESULT: %s objected %s times in %s ms%s"
+               , $sformatf("RESULT: %s objected %s times in %s ms CPU%s"
                           , `UVM_VERSION_STRING
-                          , formatn(drivers*count)
+                          , formatn(measured_objections)
                           , formatn(finish-start)
                           , features
                           )
