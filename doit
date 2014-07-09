@@ -171,11 +171,12 @@ function Analyze_uvm_objection_performance() {
   local LOG="$VERS"
   if [[ ${#VERS} = 3    ]]; then
     if [[ "$P" = 0 ]]; then
-      LOG="${LOG}_-";
+      LOG="${LOG}_";
     else
-      LOG="${LOG}+-";
+      LOG="${LOG}+";
     fi
   fi
+  LOG="$LOG-"
   local t
   t=$(echo "U=$U"|perl -pe 's/=//'); LOG="$LOG$t"
   t=$(echo "R=$R"|perl -pe 's/=//'); LOG="$LOG$t"
