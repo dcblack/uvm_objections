@@ -41,16 +41,13 @@ package performance_pkg;
     //--------------------------------------------------------------------------
     `uvm_component_utils(Obj_driver_t)
     uvm_event_pool   global_event_pool;
-    uvm_barrier_pool global_barrier_pool;
     uvm_event        starting_event;
-    uvm_barrier      finished_barrier;
     longint          count = 0;
     shortint         id = 0;
     //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
       super.new(name, parent);
       global_event_pool   = uvm_event_pool::get_global_pool();
-      global_barrier_pool = uvm_barrier_pool::get_global_pool();
     endfunction : new
     //--------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
@@ -61,13 +58,13 @@ package performance_pkg;
       phase.raise_objection(this, "Begin reset");
       #1; // Get off zero
       phase.drop_objection(this, "End reset");
-    endfunction : reset_phase
+    endtask : reset_phase
     //--------------------------------------------------------------------------
     task main_phase(uvm_phase phase);
       tr_len_t tr_len;
       longint  switching;
+      string   obj_name = $sformatf("driver[%0d]",id);
       starting_event = global_event_pool.get("starting");
-      finished_barrier = global_barrier_pool.get("finished");
       assert(uvm_config_db#(longint)::get(this, "", "count", count));
       assert(uvm_config_db#(tr_len_t)::get(this, "", "tr_len", tr_len));
       assert(uvm_config_db#(longint)::get(this, "", "switching", switching));
@@ -76,13 +73,23 @@ package performance_pkg;
       if (tr_len <= 0) tr_len = 1; // always at least one
       measured_objections += count/tr_len;
       starting_event.wait_trigger();
+      //////////////////////////////////////////////////////////////////////////
+      //
+      //   ####  #######    #    #####  #######
+      //  #    #    #      # #   #    #    #
+      //  #         #     #   #  #    #    #
+      //   ####     #    #     # #####     #
+      //       #    #    ####### #  #      #
+      //  #    #    #    #     # #   #     #
+      //   ####     #    #     # #    #    #
+      //
+      //////////////////////////////////////////////////////////////////////////
       if (switching == 0) #1;
       repeat (count/tr_len) begin
-        phase.raise_objection(this, "raising");
+        phase.raise_objection(this, obj_name);
         if (switching == 1) repeat (tr_len) #1;
-        phase.drop_objection(this, "lowering");
+        phase.drop_objection(this, obj_name);
       end//repeat
-      finished_barrier.wait_for();
     endtask : main_phase
     //--------------------------------------------------------------------------
   endclass : Obj_driver_t
@@ -145,14 +152,13 @@ package performance_pkg;
     `uvm_component_utils(Obj_test_t)
     Obj_env_t        env;
     uvm_event_pool   global_event_pool;
-    uvm_barrier_pool global_barrier_pool;
     uvm_event        starting_event;
-    uvm_barrier      finished_barrier;
+    longint          cpu_starting_time, cpu_finished_time;
+    string           features = "";
     //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
       super.new(name, parent);
       global_event_pool   = uvm_event_pool::get_global_pool();
-      global_barrier_pool = uvm_barrier_pool::get_global_pool();
     endfunction
     //--------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
@@ -167,22 +173,22 @@ package performance_pkg;
       // Manage configuration
 
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "level", levels)); //<allow from command-line
+      uvm_config_db#(shortint)::set(null, "*", "level", levels);
       $display("levels=%0d",levels);
 
-      uvm_config_db#(shortint)::set(null, "*", "level", levels);
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "drivers", drivers)); //<allow from command-line
+      uvm_config_db#(shortint)::set(null, "*", "drivers", drivers);
       $display("drivers=%0d",drivers);
 
-      uvm_config_db#(shortint)::set(null, "*", "drivers", drivers);
       void'(uvm_config_db#(string)::get(this, "", "count", tempstr)); //<allow from command-line
       if (tempstr != "") begin
         real t;
         assert($sscanf(tempstr,"%g",t));
         count = 0 + t;
       end
+      uvm_config_db#(longint)::set(null, "*", "count", count);
       $display("count=%0d",count);
 
-      uvm_config_db#(longint)::set(null, "*", "count", count);
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
       uvm_config_db#(bit)::set(null, "*", "use_seq", use_seq);
       $display("use_seq=%0d",use_seq);
@@ -211,58 +217,69 @@ package performance_pkg;
     endtask : reset_phase
     //--------------------------------------------------------------------------
     task main_phase(uvm_phase phase);
-      longint count;
+      longint  count;
+      longint  switching;
       time     delay;
       tr_len_t tr_len;
-      longint  start, finish;
-      shortint waiters;
       shortint drivers;
       bit      use_seq;
       bit      mode = 1; //< default old way
-      string   features = "";
       uvm_objection objection;
-      assert(uvm_config_db#(longint)  ::get(this, "", "count",   count));
-      assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq", use_seq));
-      assert(uvm_config_db#(tr_len_t) ::get(this, "", "tr_len", tr_len));
-      assert(uvm_config_db#(shortint) ::get(this, "", "drivers", drivers));
+      assert(uvm_config_db#(longint)  ::get(this, "", "count",     count));
+      assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq",   use_seq));
+      assert(uvm_config_db#(tr_len_t) ::get(this, "", "tr_len",    tr_len));
+      assert(uvm_config_db#(shortint) ::get(this, "", "drivers",   drivers));
+      assert(uvm_config_db#(longint)  ::get(this, "", "switching", switching));
       objection = phase.get_objection();
       `ifdef UVM_POST_VERSION_1_1
       void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
       objection.set_propagate_mode(mode);
       `endif
-      if (use_seq == 0) features = {features, "; short-seq"};
+      if (use_seq == 0) features = {features, "; short-seq"}; else features = {features, "; long-seq"};
       if (tr_len != 0)  features = {features, $sformatf("; tr%0X",tr_len)};
-      if (mode == 0)    features = {features, "; non-propagating"};
+      if (mode == 0)    features = {features, "; non-prop"}; else features = {features, "; propagate"};
+      if (switching == 0) features = {features, "; limited-switching"};
       objection.set_drain_time(uvm_top,10ns);
       uvm_top.set_timeout(1000ms);
       phase.raise_objection(this, "raising to allow setup"); // allow setup
       starting_event = global_event_pool.get("starting");
-      finished_barrier = global_barrier_pool.get("finished");
       #1ps;
-      waiters = starting_event.get_num_waiters();
-      finished_barrier.set_threshold(waiters+1);
       `uvm_info("test1:objections", $sformatf("Running %0d x %s iterations%s", drivers, formatn(count),features), UVM_NONE)
       delay = (count-2);
       phase.drop_objection(this, "lowering after setup");
       measured_objections += 1;
+      //////////////////////////////////////////////////////////////////////////
+      //
+      //   ####  #######    #    #####  #######
+      //  #    #    #      # #   #    #    #
+      //  #         #     #   #  #    #    #
+      //   ####     #    #     # #####     #
+      //       #    #    ####### #  #      #
+      //  #    #    #    #     # #   #     #
+      //   ####     #    #     # #    #    #
+      //
+      //////////////////////////////////////////////////////////////////////////
       starting_event.trigger();
-      start = get_time();
-      phase.raise_objection(this, "raising to start main sequence"); // simulate sequence start
+      cpu_starting_time = get_time();
+      phase.raise_objection(this, "raising to start top sequence"); // simulate sequence start
       #1ps;
       if (use_seq) #(delay);
-      phase.drop_objection(this, "lowering at end of main sequence"); // simulate sequence done
-      finished_barrier.wait_for();
-      finish = get_time();
+      phase.drop_objection(this, "lowering at end of top sequence"); // simulate sequence done
+      #1ps;
+    endtask : main_phase
+    //--------------------------------------------------------------------------
+    function void report_phase(uvm_phase phase);
+      cpu_finished_time = get_time();
       `uvm_info("test1:objections"
                , $sformatf("RESULT: %s objected %s times in %s ms CPU%s"
                           , `UVM_VERSION_STRING
                           , formatn(measured_objections)
-                          , formatn(finish-start)
+                          , formatn(cpu_finished_time-cpu_starting_time)
                           , features
                           )
                , UVM_NONE
                )
-    endtask : main_phase
+    endfunction : report_phase
     //--------------------------------------------------------------------------
   endclass : Obj_test_t
 
