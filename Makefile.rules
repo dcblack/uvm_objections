@@ -24,17 +24,17 @@ $(info INFO: $$ Makefile,v 1.1 2014/05/22 04:26:56 dcblack Exp $$)
 ################################################################################
 define MAKEFILE_DOCUMENTATION
 
-#######################################################################
-#                                                                     #
-#   ---->>     To read this use: perldoc Makefile          <<----     #
-#                                                                     #
-#######################################################################
+################################################################################
+#                                                                              #
+#   -->>>  To read this use: 'perldoc Makefile.rules' or 'make rules'  <<<--   #
+#                                                                              #
+################################################################################
 
 =pod
 
 =head1 NAME
 
-B<Makefile> - Makefile for UVM performance measurements tests
+B<Makefile> - Makefile for automation of UVM
 
 =head1 SYNOPSIS
 
@@ -48,10 +48,10 @@ NOTE - Some local installations of GNU make rename it to B<gmake>.
 
 =head1 DESCRIPTION
 
-This file, Makefile, contains rules for and running the Easier UVM
-Generator under UNIX. It has a variety of pseudo-targets
-(targets that do not correspond directly to creation of a like named
-file).
+This file, Makefile, contains rules for and running the UVM under *NIX. It has a
+variety of pseudo-targets (targets that do not correspond directly to creation
+of a like named file). Some of the targets are specific to performance
+measurements code.
 
 =head1 USAGE
 
@@ -61,9 +61,13 @@ The following targets are available:
 
 =item B<help>
 
-Displays this documentation.
+Displays documentation from Makefile describing options & variations on rules.
 
 This is the default target.
+
+=item B<rules>
+
+Displays documentation from this file describing the rules.
 
 =item B<it>
 
@@ -83,47 +87,47 @@ Announces completion, and sends e-mail if MAILTO is defined.
 
 =item B<ius>
 
-Run Cadence Incisive simulator for $(SRCS).
+Run UVM under Cadence Incisive simulator for $(SRCS).
 
 =item B<ius_debug>
 
-Run Cadence Incisive simulator in debug mode (GUI) for $(SRCS).
+Run UVM under Cadence Incisive simulator in debug mode (GUI) for $(SRCS).
 
 =item B<ius_std>
 
-Run Cadence Incisive simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+Run UVM under Cadence Incisive simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
 
 =item B<ius_std_debug>
 
-Run Cadence Incisive simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+Run UVM under Cadence Incisive simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
 
 =item B<questa>
 
-Run Mentor Questasim simulator for $(SRCS).
+Run UVM under Mentor Questasim simulator for $(SRCS).
 
 =item B<questa_debug>
 
-Run Mentor Questasim simulator in debug mode (GUI) for $(SRCS).
+Run UVM under Mentor Questasim simulator in debug mode (GUI) for $(SRCS).
 
 =item B<questa_std>
 
-Run Mentor Questasim simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+Run UVM under Mentor Questasim simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
 
 =item B<questa_std_debug>
 
-Run Mentor Questasim simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+Run UVM under Mentor Questasim simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
 
 =item B<vcs>
 
-Run Synopsys VCS simulator for $(SRCS).
+Run UVM under Synopsys VCS simulator for $(SRCS).
 
 =item B<vcs_debug>
 
-Run Synopsys VCS simulator in debug mode (GUI) for $(SRCS).
+Run UVM under Synopsys VCS simulator in debug mode (GUI) for $(SRCS).
 
 =item B<vcs_std>
 
-Run Synopsys VCS for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+Run UVM under Synopsys VCS for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
 
 =item B<clean>
 
@@ -414,6 +418,9 @@ clean:
 	urgReport cov_work *.so vc_hdrs.h
 
 help:
+	@perldoc Makefile
+
+rules:
 	@perldoc ${MAKEFILE_RULES}
 
 it:

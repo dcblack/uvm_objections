@@ -154,6 +154,10 @@ exit 0
 export TAG
 not_really=0
 
+function Split() {
+  perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
+}
+
 function Analyze_uvm_objection_performance() {
   #   1   2    3        4        5       6      7        8        9
   # $SIM VERS L=LEVELS A=AGENTS C=COUNT P=PROP U=USESEQ R=TR_LEN X=SWITCHING
@@ -252,7 +256,7 @@ function Doit() {
     VERSIONS="$ALL_VERSIONS"
   fi
   SIMS=
-  for S in $SIM; do
+  for S in $(Split $SIM); do
     case "$S" in # Legal simulator target prefixes
       aldec|riviera          ) SIMS="$SIMS aldec"  ;;
       cadence|ius|incisive   ) SIMS="$SIMS ius"    ;;
@@ -265,13 +269,13 @@ function Doit() {
   if [[ $pause -gt 0 && $pause -lt 10 ]]; then pause=10; fi # Minimum
 
   let first=1
-  for S in $SIMS; do
-    for L in $LEVELS; do
-      for A in $AGENTS; do
-        for U in $USESEQ; do
-          for R in $TR_LEN; do
-            for X in $SWITCHING; do
-              for V in $VERSIONS; do
+  for S in $(Split $SIMS); do
+    for L in $(Split $LEVELS); do
+      for A in $(Split $AGENTS); do
+        for U in $(Split $USESEQ); do
+          for R in $(Split $TR_LEN); do
+            for X in $(Split $SWITCHING); do
+              for V in $(Split $VERSIONS); do
                 # Pause between runs to allow clean interrupt
                 if [[ $not_really = 0 && $first = 0 && $pause != 0 ]]; then
                   echo -n "Pausing $pause"
