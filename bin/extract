@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+eval 'exec perl -S $0 ${1+"$@"}' # vim600:sw=2:tw=0
+  if 0;#running_under_some_shell
+
+# @(#)$Info: Extract data from simulation runs into tabular format. $ {{{
+#
+# @(#)$Email: <david.black@doulos.com>. $
+# @(#)$License: Apache 2.0 $
+
+require 5.0;
+use strict;
+use FindBin qw($RealBin $RealScript);
+use FileHandle;
+STDOUT->autoflush(1);
+STDERR->autoflush(1);
+
+if (scalar @ARGV == 0) {
+  printf "USAGE: %s/%s LOGFILE >table.csv\n",$RealBin,$RealScript;
+  exit 0;
+}
+
+# Sample input:
+#   TIMESTAMP: Starting at  1404420819 Thu Jul  3 21:53:39 BST 2014
+#   UVM_INFO performance.sv(206) @ 21000001: uvm_test_top [test1:objections] RESULT: UVM-1.1c objected 42,000,000 times in 185,460 ms
+#   TIMESTAMP: Finished at  1404421013 Thu Jul  3 21:56:53 BST 2014
+# Sample output:
+#   i1.1c-u0r0x0L03a2, 42000000, 185.460, 194
+
+for my $filename (@ARGV) {
+  my $fh;
+  open $fh,'<',$filename;
+  my $base = $filename;
+  $base =~ s{[.]txt$}{};
+  $base =~ s{.*/}{};
+  my ($line, $starting, $finished, $objected, $elapsed, $wall);
+  while ($line = <$fh>) {
+    chomp $line;
+    $line =~ s{^# *}{};
+    if ($line =~ m{TIMESTAMP: (\w+) at *(\d+)}) {
+      if ($1 eq 'Starting') {
+        $starting = $2;
+      } else {
+        $finished = $2;
+      }#endif
+    } elsif ($line =~ m{RESULT: .* objected ([0-9,]+) times in ([0-9,]+) ms}) {
+      $objected = $1;
+      $elapsed = $2;
+    }#endif
+    if ($line =~ m{Finished}) {
+      $objected =~ s{,}{}g;
+      $elapsed =~ s{,}{}g;
+      $wall = $finished - $starting;
+      printf "%s, %d, %1.3f, %d\n",$base,$objected,$elapsed/1000,$wall;
+    }#endif
+  }#endwhile
+  close $fh;
+}#endfor
