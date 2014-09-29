@@ -29,6 +29,11 @@ For more sophisticated runs,
     % make it ARGS="-C 1e9 -L 4 -S vcs -T x 1.2r"
 ``
 
+Or read Makefile documentation:
+``
+    % make
+``
+
 HINT: Use `screen` to run everything in background:
 
 1. To start a job:

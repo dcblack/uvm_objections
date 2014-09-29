@@ -268,7 +268,9 @@ endif
 ifdef MODEL_TECH
   QUESTA_HOME  := $(MODEL_TECH)
 else
+ifndef QUESTA_HOME
   QUESTA_HOME  := $(dir ${shell which vsim | sed -e's-/$(TARGET_ARCH)/-/-'})
+endif
 endif
   SIMULATOR    := QUESTA
 # CXX          := $(lastword $(shell find $(QUESTA_HOME) -name 'g++'))

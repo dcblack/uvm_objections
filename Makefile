@@ -78,6 +78,90 @@ It uses Makefile.rules for most of the automation.
 
 =head1 USAGE
 
+The following targets are available:
+
+=over
+
+=item B<help>
+
+Displays documentation from Makefile describing options & variations on rules.
+
+This is the default target.
+
+=item B<rules>
+
+Displays documentation from this file describing the rules.
+
+=item B<it>
+
+Run default set of tests. Also calls B<starting>, B<finished>, B<notify>.
+
+=item B<starting>
+
+Wall clock timestamp with label "Starting at".
+
+=item B<finished>
+
+Wall clock timestamp with label "Finished at".
+
+=item B<notify>
+
+Announces completion, and sends e-mail if MAILTO is defined.
+
+=item B<ius>
+
+Run UVM under Cadence Incisive simulator for $(SRCS).
+
+=item B<ius_debug>
+
+Run UVM under Cadence Incisive simulator in debug mode (GUI) for $(SRCS).
+
+=item B<ius_std>
+
+Run UVM under Cadence Incisive simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<ius_std_debug>
+
+Run UVM under Cadence Incisive simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<questa>
+
+Run UVM under Mentor Questasim simulator for $(SRCS).
+
+=item B<questa_debug>
+
+Run UVM under Mentor Questasim simulator in debug mode (GUI) for $(SRCS).
+
+=item B<questa_std>
+
+Run UVM under Mentor Questasim simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<questa_std_debug>
+
+Run UVM under Mentor Questasim simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<vcs>
+
+Run UVM under Synopsys VCS simulator for $(SRCS).
+
+=item B<vcs_debug>
+
+Run UVM under Synopsys VCS simulator in debug mode (GUI) for $(SRCS).
+
+=item B<vcs_std>
+
+Run UVM under Synopsys VCS for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<clean>
+
+Remove automatically generated files and libraries from (old) simulations.
+
+=item B<version>
+
+Display UVM version
+
+=back
+
 The following options are available:
 
 =over
@@ -128,7 +212,17 @@ lower on every transaction driven.
 If the environment variable or macro MAILTO is defined, the notify target will send e-mail announcing
 comletion.
 
-=EXAMPLE
+UVM_VER may be set to a numeric value to specify the desired version of UVM (e.g. 1.1).
+
+UVM_HOME (points to the UVM home installation directory (overriding any UVM_VER).
+
+HOST_ARCH may be specified or automatically detected.
+
+TARGET_ARCH defaults to HOST_ARCH, but may be overridden. FORCE_ARCH may be used to override even this.
+
+MODEL_TECH overrides QUESTA_HOME
+
+=head1 EXAMPLE
 
 make it A="2 1" L="4"; # 2 agents
 
