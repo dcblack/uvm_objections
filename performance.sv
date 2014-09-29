@@ -153,7 +153,8 @@ package performance_pkg;
     Obj_env_t        env;
     uvm_event_pool   global_event_pool;
     uvm_event        starting_event;
-    longint          cpu_starting_time, cpu_finished_time;
+    real             cpu_starting_time, cpu_finished_time;
+    real             wall_starting_time, wall_finished_time;
     string           features = "";
     //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
@@ -260,7 +261,8 @@ package performance_pkg;
       //
       //////////////////////////////////////////////////////////////////////////
       starting_event.trigger();
-      cpu_starting_time = get_time();
+      cpu_starting_time = get_cpu_time();
+      wall_starting_time = get_wall_time();
       phase.raise_objection(this, "raising to start top sequence"); // simulate sequence start
       #1ps;
       if (use_seq) #(delay);
@@ -269,12 +271,17 @@ package performance_pkg;
     endtask : main_phase
     //--------------------------------------------------------------------------
     function void report_phase(uvm_phase phase);
-      cpu_finished_time = get_time();
+      longint cpu_ms, wall_ms;
+      cpu_finished_time = get_cpu_time();
+      wall_finished_time = get_wall_time();
+      cpu_ms = 1000*(cpu_finished_time-cpu_starting_time);
+      wall_ms = 1000*(wall_finished_time-wall_starting_time);
       `uvm_info("test1:objections"
-               , $sformatf("RESULT: %s objected %s times in %s ms CPU%s"
+               , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                           , `UVM_VERSION_STRING
                           , formatn(measured_objections)
-                          , formatn(cpu_finished_time-cpu_starting_time)
+                          , formatn(cpu_ms)
+                          , formatn(wall_ms)
                           , features
                           )
                , UVM_NONE
