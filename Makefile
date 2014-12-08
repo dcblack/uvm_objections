@@ -6,11 +6,19 @@ SRCS = formatn.cpp get_time.cpp performance.sv
 
 INCDIRS = +incdir+.
 
+RUN_OPTS+=$D 
+RUN_OPTS+=$O 
 ifdef L
   RUN_OPTS+='+uvm_set_config_int=*,level,$L' 
 endif
+ifdef M
+  RUN_OPTS+='+uvm_set_config_int=*,messages,$M' 
+endif
+ifdef W
+  RUN_OPTS+='+uvm_set_config_int=*,warnings,$W' 
+endif
 ifdef A
-  RUN_OPTS+='+uvm_set_config_int=*,drivers,$A' 
+  RUN_OPTS+='+uvm_set_config_int=*,agents,$A' 
 endif
 ifdef U
   RUN_OPTS+='+uvm_set_config_int=*,use_seq,$U' 
@@ -29,6 +37,27 @@ ifdef X
 endif
 ifdef OPTS
   RUN_OPTS+=${OPTS}
+endif
+ifdef PERIOD
+  VERILOG_DEFINES+=+define+PERIOD=${PERIOD} 
+endif
+ifdef BITS
+  VERILOG_DEFINES+=+define+BITS=${BITS} 
+endif
+ifdef BUSY
+  VERILOG_DEFINES+=+define+BUSY=${BUSY} 
+endif
+ifdef USE_RTL
+  VERILOG_DEFINES+=+define+USE_RTL=${USE_RTL} 
+endif
+ifdef USE_MONITOR
+  VERILOG_DEFINES+=+define+USE_MONITOR=${USE_MONITOR} 
+endif
+ifdef USE_CLOCKING
+  VERILOG_DEFINES+=+define+USE_CLOCKING=${USE_CLOCKING} 
+endif
+ifdef RTL_NOISE
+  VERILOG_DEFINES+=+define+RTL_NOISE=${RTL_NOISE} 
 endif
 
 EXTRA_QUESTA_OPTS := 
@@ -78,6 +107,90 @@ It uses Makefile.rules for most of the automation.
 
 =head1 USAGE
 
+The following targets are available:
+
+=over
+
+=item B<help>
+
+Displays documentation from Makefile describing options & variations on rules.
+
+This is the default target.
+
+=item B<rules>
+
+Displays documentation from this file describing the rules.
+
+=item B<it>
+
+Run default set of tests. Also calls B<starting>, B<finished>, B<notify>.
+
+=item B<starting>
+
+Wall clock timestamp with label "Starting at".
+
+=item B<finished>
+
+Wall clock timestamp with label "Finished at".
+
+=item B<notify>
+
+Announces completion, and sends e-mail if MAILTO is defined.
+
+=item B<ius>
+
+Run UVM under Cadence Incisive simulator for $(SRCS).
+
+=item B<ius_debug>
+
+Run UVM under Cadence Incisive simulator in debug mode (GUI) for $(SRCS).
+
+=item B<ius_std>
+
+Run UVM under Cadence Incisive simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<ius_std_debug>
+
+Run UVM under Cadence Incisive simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<questa>
+
+Run UVM under Mentor Questasim simulator for $(SRCS).
+
+=item B<questa_debug>
+
+Run UVM under Mentor Questasim simulator in debug mode (GUI) for $(SRCS).
+
+=item B<questa_std>
+
+Run UVM under Mentor Questasim simulator for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<questa_std_debug>
+
+Run UVM under Mentor Questasim simulator in debug mode (GUI) for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<vcs>
+
+Run UVM under Synopsys VCS simulator for $(SRCS).
+
+=item B<vcs_debug>
+
+Run UVM under Synopsys VCS simulator in debug mode (GUI) for $(SRCS).
+
+=item B<vcs_std>
+
+Run UVM under Synopsys VCS for $(SRCS) using $(UVM_HOME) instead of built-in UVM.
+
+=item B<clean>
+
+Remove automatically generated files and libraries from (old) simulations.
+
+=item B<version>
+
+Display UVM version
+
+=back
+
 The following options are available:
 
 =over
@@ -85,6 +198,14 @@ The following options are available:
 =item B<L="LIST">
 
 Sets -L option of ./doit script with LIST, which is a space or comma separated list of integer levels.
+
+=item B<M="LIST">
+
+Sets -M option of ./doit script with LIST, which is a space or comma separated list of message counts.
+
+=item B<W="LIST">
+
+Sets -W option of ./doit script with LIST, which is a space or comma separated list of warning counts.
 
 =item B<A="LIST">
 
@@ -128,7 +249,17 @@ lower on every transaction driven.
 If the environment variable or macro MAILTO is defined, the notify target will send e-mail announcing
 comletion.
 
-=EXAMPLE
+UVM_VER may be set to a numeric value to specify the desired version of UVM (e.g. 1.1).
+
+UVM_HOME (points to the UVM home installation directory (overriding any UVM_VER).
+
+HOST_ARCH may be specified or automatically detected.
+
+TARGET_ARCH defaults to HOST_ARCH, but may be overridden. FORCE_ARCH may be used to override even this.
+
+MODEL_TECH overrides QUESTA_HOME
+
+=head1 EXAMPLE
 
 make it A="2 1" L="4"; # 2 agents
 

@@ -48,7 +48,7 @@ Run a single test (pipe cleaner).
 
 Number of times to repeat inner loop
 
-=item B<-D> #
+=item B<-A> #
 
 Number of agents to instantiate
 
@@ -60,9 +60,21 @@ Display this help.
 
 Number of levels of hierarchy above drivers
 
+=item B<-M> #
+
+Number of info messages to display
+
 =item B<-n>
 
 Not really
+
+=item B<-o>
+
+Turn-on objection tracing
+
+=item B<-p> #
+
+Seconds to delay between simulations (minimum 5)
 
 =item B<-P> 0 | 1
 
@@ -84,25 +96,25 @@ Unspecified drivers get a value of 1ps.
 
 Specify simulator to use.
 
-=item B<-U> 0 | 1
-
-Specify whether to use a full sequence (1) or a short 1ps sequence.
-
-=item B<-X> NUMBER
-
-Specify context switching choice.
-
 =item B<-t> I<TAG>
 
 Specify a I<TAG> to include in log file name.
 
-=item B<-p> #
+=item B<-U> 0 | 1
 
-Seconds to delay between simulations (minimum 5)
+Specify whether to use a full sequence (1) or a short 1ps sequence.
 
 =item B<-v>
 
 Verbose mode to expand explanatory output.
+
+=item B<-W> #
+
+Number of warning messages to display
+
+=item B<-X> NUMBER
+
+Specify context switching choice.
 
 =back
 
@@ -153,15 +165,16 @@ exit 0
 #-------------------------------------------------------------------------------
 export TAG
 not_really=0
+export obj_trace
 
 function Split() {
   perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
 }
 
 function Analyze_uvm_objection_performance() {
-  #   1   2    3        4        5       6      7        8        9
-  # $SIM VERS L=LEVELS A=AGENTS C=COUNT P=PROP U=USESEQ R=TR_LEN X=SWITCHING
-  local SIM=$1 VERS=$2 LVLS=$3 AGTS=$4 CNT=$5 PROP=$6 U=$7 R=$8 X=$9
+  #   1   2    3        4        5       6      7        8        9           10         11
+  # $SIM VERS L=LEVELS A=AGENTS C=COUNT P=PROP U=USESEQ R=TR_LEN X=SWITCHING M=MESSAGES W=WARNINGS
+  local SIM=${1} VERS=${2} LVLS=${3} AGTS=${4} CNT=${5} PROP=${6} U=${7} R=${8} X=${9} M=${10} W=${11}
   shift; shift
   local var val
   for arg in $@; do
@@ -171,6 +184,14 @@ function Analyze_uvm_objection_performance() {
       local $var=$val
     fi
   done
+  O=
+  if [[ "$obj_trace" == 1 ]]; then
+    O="O=+UVM_OBJECTION_TRACE"
+  fi
+  D=
+  if [[ "$debug" == 1 ]]; then
+    D="D=+UVM_VERBOSITY=UVM_DEBUG"
+  fi
   local clean='clean'
   local LOG="$VERS"
   if [[ ${#VERS} = 3    ]]; then
@@ -186,6 +207,8 @@ function Analyze_uvm_objection_performance() {
   t=$(echo "R=$R"|perl -pe 's/=//'); LOG="$LOG$t"
   t=$(echo "X=$X"|perl -pe 's/=//'); LOG="$LOG$t"
   t=$(echo "L=$L%"|perl -pe 's/=//;s/([L])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "M=$M%"|perl -pe 's/=//;s/([M])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "W=$W%"|perl -pe 's/=//;s/([W])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
   t=$(echo "A=$A"|perl -pe 's/=//'); LOG="$LOG$t"
   case "$SIM" in
     questa) LOG="q$LOG" ;;
@@ -199,11 +222,11 @@ function Analyze_uvm_objection_performance() {
   if [[ $not_really = 0 ]]; then
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
-    echo "Analyze_uvm_objection_performance ${SIM} ${VERS} $*"                          | tee    $LOG.txt
-    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* 2>&1" | tee -a $LOG.txt
-    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} "$@" 2>&1        | tee -a $LOG.txt
+    echo "Analyze_uvm_objection_performance ${SIM} ${VERS} $*"                             | tee    $LOG.txt
+    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* $D $O 2>&1" | tee -a $LOG.txt
+    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} "$@" $D $O 2>&1        | tee -a $LOG.txt
   else
-    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* 2>&1  | tee   $LOG.txt"
+    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* $D $O 2>&1  | tee   $LOG.txt"
   fi
 } #end Analyze_uvm_objection_performance
 
@@ -213,6 +236,8 @@ function Doit() {
   local VERSIONS=""
   local verbose=0
   local pause=10
+  local MESSAGES=$LEVELS
+  local WARNINGS=$MESSAGES
   local LEVELS=$LEVELS
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
@@ -226,6 +251,8 @@ function Doit() {
   if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
   if [[ "$AGENTS"    = "" ]]; then AGENTS="2 4"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
+  if [[ "$MESSAGES"  = "" ]]; then MESSAGES="0 9000" ; fi
+  if [[ "$WARNINGS"  = "" ]]; then WARNINGS="0 2"    ; fi
   if [[ "$PROPAGATE" = "" ]]; then PROPAGATE="1"     ; fi
   if [[ "$TR_LEN"    = "" ]]; then TR_LEN="0 12"     ; fi
   if [[ "$USESEQ"    = "" ]]; then USESEQ="0 1"      ; fi
@@ -238,17 +265,22 @@ function Doit() {
     elif [[ "${1}" = "-h"     ]]; then Help;
     elif [[ "${1}" = "-help"  ]]; then Help;
     elif [[ "${1}" = "--help" ]]; then Help;
+    elif [[ "${1}" = "-d"     ]]; then debug=1;
+    elif [[ "${1}" = "-debug" ]]; then debug=1;
     elif [[ "${1}" = "-n"     ]]; then not_really=1;
-    elif [[ "${1}" = "-p"     ]]; then pause=${2};     shift;
-    elif [[ "${1}" = "-t"     ]]; then TAG=${2};       shift;
-    elif [[ "${1}" = "-C"     ]]; then COUNTS=${2};    shift;
-    elif [[ "${1}" = "-D"     ]]; then AGENTS=${2};    shift;
-    elif [[ "${1}" = "-L"     ]]; then LEVELS=${2};    shift;
-    elif [[ "${1}" = "-P"     ]]; then PROPAGATE=${2}; shift;
-    elif [[ "${1}" = "-S"     ]]; then SIM=${2};       shift;
-    elif [[ "${1}" = "-R"     ]]; then TR_LEN=${2};    shift;
-    elif [[ "${1}" = "-U"     ]]; then USESEQ=${2};    shift;
-    elif [[ "${1}" = "-X"     ]]; then SWITCHING=${2}; shift;
+    elif [[ "${1}" = "-o"     ]]; then obj_trace=1;
+    elif [[ "${1}" = "-p"     ]]; then pause="${2}";     shift;
+    elif [[ "${1}" = "-t"     ]]; then TAG="${2}";       shift;
+    elif [[ "${1}" = "-C"     ]]; then COUNTS="${2}";    shift;
+    elif [[ "${1}" = "-A"     ]]; then AGENTS="${2}";    shift;
+    elif [[ "${1}" = "-L"     ]]; then LEVELS="${2}";    shift;
+    elif [[ "${1}" = "-M"     ]]; then MESSAGES="${2}";  shift;
+    elif [[ "${1}" = "-P"     ]]; then PROPAGATE="${2}"; shift;
+    elif [[ "${1}" = "-S"     ]]; then SIM="${2}";       shift;
+    elif [[ "${1}" = "-R"     ]]; then TR_LEN="${2}";    shift;
+    elif [[ "${1}" = "-U"     ]]; then USESEQ="${2}";    shift;
+    elif [[ "${1}" = "-W"     ]]; then WARNINGS="${2}";  shift;
+    elif [[ "${1}" = "-X"     ]]; then SWITCHING="${2}"; shift;
     elif [[ "${1}" = "-v"     ]]; then verbose=1;
     else                               OPTS="$OPTS ${1}"
     fi
@@ -289,40 +321,44 @@ function Doit() {
   let first=1
   for S in $(Split $SIMS); do
     for L in $(Split $LEVELS); do
-      for A in $(Split $AGENTS); do
-        for U in $(Split $USESEQ); do
-          for R in $(Split $TR_LEN); do
-            for X in $(Split $SWITCHING); do
-              for V in $(Split $VERSIONS); do
-                # Pause between runs to allow clean interrupt
-                if [[ $not_really = 0 && $first = 0 && $pause != 0 ]]; then
-                  echo -n "Pausing $pause"
-                  let i=$pause
-                  while [[ $i -gt 0 ]]; do
-                    echo -n "."
-                    sleep 1;
-                    let i--
-                  done
-                  echo ""
-                fi
-                let first=0
+      for M in $(Split $MESSAGES); do
+        for W in $(Split $WARNINGS); do
+          for A in $(Split $AGENTS); do
+            for U in $(Split $USESEQ); do
+              for R in $(Split $TR_LEN); do
+                for X in $(Split $SWITCHING); do
+                  for V in $(Split $VERSIONS); do
+                    # Pause between runs to allow clean interrupt
+                    if [[ $not_really = 0 && $first = 0 && $pause != 0 ]]; then
+                      echo -n "Pausing $pause"
+                      let i=$pause
+                      while [[ $i -gt 0 ]]; do
+                        echo -n "."
+                        sleep 1;
+                        let i--
+                      done
+                      echo ""
+                    fi
+                    let first=0
 
-                case "$V" in
-                  #     0                                 1    2   3         4         5            6    7    8
-                  1.1b) Analyze_uvm_objection_performance $S 1.1b L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
-                  1.1c) Analyze_uvm_objection_performance $S 1.1c L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
-                  1.1d) Analyze_uvm_objection_performance $S 1.1d L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
-                  1.2r) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=0          U=$U R=$R X=$X OPTS="$OPTS" ;;
-                  1.2 ) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
-                  1.* ) Analyze_uvm_objection_performance $S $V   L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" ;;
-                     *) echo "ERROR: Weird UVM version '$V'" ; exit 1 ;;
-                esac
-                if [[ $not_really = 0 ]]; then
-                  echo ""
-                fi
-                if [[ $first_only = 1 ]]; then
-                  break 42
-                fi
+                    case "$V" in
+                      #     0                                 1    2   3         4         5            6    7    8       9         10   11
+                      1.1b) Analyze_uvm_objection_performance $S 1.1b L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
+                      1.1c) Analyze_uvm_objection_performance $S 1.1c L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
+                      1.1d) Analyze_uvm_objection_performance $S 1.1d L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
+                      1.2r) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=0          U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
+                      1.2 ) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
+                      1.* ) Analyze_uvm_objection_performance $S $V   L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
+                         *) echo "ERROR: Weird UVM version '$V'" ; exit 1 ;;
+                    esac
+                    if [[ $not_really = 0 ]]; then
+                      echo ""
+                    fi
+                    if [[ $first_only = 1 ]]; then
+                      break 42
+                    fi
+                  done
+                done
               done
             done
           done

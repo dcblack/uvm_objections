@@ -268,13 +268,15 @@ endif
 ifdef MODEL_TECH
   QUESTA_HOME  := $(MODEL_TECH)
 else
+ifndef QUESTA_HOME
   QUESTA_HOME  := $(dir ${shell which vsim | sed -e's-/$(TARGET_ARCH)/-/-'})
+endif
 endif
   SIMULATOR    := QUESTA
 # CXX          := $(lastword $(shell find $(QUESTA_HOME) -name 'g++'))
 # CC           := $(lastword $(shell find $(QUESTA_HOME) -name 'gcc'))
   QUESTA_LIBS  := $(QUESTA_HOME)/uvm-$(UVM_VER)$(UVM_SUB_VER)/$(TARGET_ARCH)/uvm_dpi
-  QUESTA_OPTS  := -novopt  $(EXTRA_QUESTA_OPTS)
+  QUESTA_OPTS  := ${VERILOG_DEFINES} -novopt  $(EXTRA_QUESTA_OPTS)
   $(info INFO: QUESTA_HOME=$(QUESTA_HOME)) 
 endif
 
@@ -282,7 +284,7 @@ ifeq "$(findstring ius,$(MAKECMDGOALS))" "ius"
   SIMULATOR    := INCA
   IRUN         := irun
   IUS_HOME     := ${shell ncroot}
-  IUS_OPTS     := $(EXTRA_IUS_OPTS)
+  IUS_OPTS     := ${VERILOG_DEFINES} $(EXTRA_IUS_OPTS)
   IUS_PLILIB   := $(IUS_HOME)/tools/uvm/uvm_lib/uvm_sv/lib/libuvmpli.so:uvm_pli_boot
   ifeq "$(CPUWIDTH)" "64"
     IUS_OPTS   := -64BIT $(EXTRA_IUS_OPTS)
@@ -298,7 +300,7 @@ endif
 ifeq "$(findstring vcs,$(MAKECMDGOALS))" "vcs"
   SIMULATOR    := VCS
   VCS          := vcs
-  VCS_OPTS     := -sverilog +acc +vpi -timescale=1ns/1ns $(EXTRA_VCS_OPTS)
+  VCS_OPTS     := -sverilog ${VERILOG_DEFINES} +acc +vpi -timescale=1ns/1ns $(EXTRA_VCS_OPTS)
 endif
 
 ##############################################################################
