@@ -138,7 +138,7 @@ module VerilogDesign
     repeat (cycles) @(posedge clk);
     busy <= 0;
   endtask : Busy
-  always_ff @(posedge clk) begin : FF
+  always @(posedge clk) begin : FF
     if (reset) begin
       result <= 0;
       busy <= 0;
@@ -251,7 +251,7 @@ package performance_pkg;
     endfunction
     //--------------------------------------------------------------------------
     function string convert2string;
-      return $sformatf("{#%0d,R=%s D=%0h}",m_reset,m_data);
+      return $sformatf("{R=%s D=%0h}",m_reset,m_data);
     endfunction
     //--------------------------------------------------------------------------
   endclass : My_transaction_t
