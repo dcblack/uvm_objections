@@ -17,10 +17,16 @@ To run (default):
 
 For more sophisticated runs,
 
+0. Add ./bin to search path
+
+``
+    % source setup.profile
+``
+
 1. Read documentation:
 
 ``
-    % perldoc doit
+    % perldoc bin/doit
 ``
 
 2. Use custom make command:
@@ -62,7 +68,7 @@ Manifest
 - `Makefile` <- specifies source files and basic options
 - `Makefile.rules` <- make rules to launch various simulators
 - `README.md` <- This text
-- `doit` <- bash script to simplify regressions
+- `bin/doit` <- bash script to simplify regressions
 - `formatn.cpp` <- formats numbers with commas (,) to separate thousands, millions, etc.
 - `formatn.svh` <- SystemVerilog DPI import
 - `get_time.cpp` <- function to return CPU milliseconds timestamp
