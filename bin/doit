@@ -238,8 +238,8 @@ function Doit() {
   local VERSIONS=""
   local verbose=0
   local pause=10
-  local MESSAGES=$LEVELS
-  local WARNINGS=$MESSAGES
+  local MESSAGES=$MESSAGES
+  local WARNINGS=$WARNINGS
   local LEVELS=$LEVELS
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
