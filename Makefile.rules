@@ -44,7 +44,7 @@ or if #included from a Makefile
 
 B<make> [{:TARGET:}]
 
-NOTE - Some local installations of GNU make rename it to B<gmake>.
+NOTE - Some local installations of GNU tools refer to B<make> as B<gmake>.
 
 =head1 DESCRIPTION
 
@@ -71,7 +71,7 @@ Displays documentation from this file describing the rules.
 
 =item B<it>
 
-Run default set of tests. Also calls B<starting>, B<finished>, B<notify>.
+Run default set of tests using the executable bin/doit
 
 =item B<starting>
 
@@ -426,7 +426,7 @@ rules:
 	@perldoc ${MAKEFILE_RULES}
 
 it:
-	./doit ${ARGS}
+	bin/doit ${ARGS}
 	@$(MAKE) notify
 
 #TAF!

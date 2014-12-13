@@ -135,7 +135,7 @@ module Design
         , input clk
         , input Data_t data
         , output var Data_t result
-        , output var busy
+        , output var bit    busy
         );
   //----------------------------------------------------------------------------
   timeunit 1ps;
@@ -146,9 +146,10 @@ module Design
     repeat (cycles) @(posedge clk);
     busy <= 0;
   endtask : Busy
-  always_ff @(posedge clk) begin : FF
+  always @(posedge clk) begin : FF
     if (reset) begin
       result <= 0;
+      busy <= 0;
       Busy(`BUSY);
     end
     else begin
@@ -262,6 +263,10 @@ package Performance_pkg;
     // Constructor
     function new(string name="");
       super.new(name);
+    endfunction
+    //--------------------------------------------------------------------------
+    function string convert2string;
+      return $sformatf("{R=%s D=%0h}",m_reset,m_data);
     endfunction
     //--------------------------------------------------------------------------
   endclass : My_transaction_t
@@ -737,6 +742,8 @@ package Performance_pkg;
     m_env = My_env_t::type_id::create("m_env",this);
     `uvm_info("", $sformatf("Created %s", get_full_name()), UVM_NONE)
   endfunction : My_test_t::build_phase
+
+
   //----------------------------------------------------------------------------
   task My_test_t::reset_phase(uvm_phase phase);
     `uvm_info("build_phase",$sformatf("%s\nRUNNING\n%s",SEP1,SEP2), UVM_NONE);

@@ -4,6 +4,8 @@
 #
 # ./doit -h will display the documentation
 
+set -x
+
 ################################################################################
 #
 #  #    # ##### #     #####
@@ -236,8 +238,8 @@ function Doit() {
   local VERSIONS=""
   local verbose=0
   local pause=10
-  local MESSAGES=$LEVELS
-  local WARNINGS=$MESSAGES
+  local MESSAGES=$MESSAGES
+  local WARNINGS=$WARNINGS
   local LEVELS=$LEVELS
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
@@ -259,7 +261,7 @@ function Doit() {
   if [[ "$SIM"       = "" ]]; then SIM="all"         ; fi
   if [[ "$SWITCHING" = "" ]]; then SWITCHING="1"     ; fi
 
-  while  [[ "${1}" =  [+-]* ]];do
+  while  [[ $# -gt 0 && "${1}" =  [+-]* ]];do
     if   [[ "${1}" = "-1"     ]]; then first_only=1;
     elif [[ "${1}" = "-q"     ]]; then verbose=0;
     elif [[ "${1}" = "-h"     ]]; then Help;
@@ -269,6 +271,7 @@ function Doit() {
     elif [[ "${1}" = "-debug" ]]; then debug=1;
     elif [[ "${1}" = "-n"     ]]; then not_really=1;
     elif [[ "${1}" = "-o"     ]]; then obj_trace=1;
+    elif [[ "${1}" = "-trace" ]]; then obj_trace=1;
     elif [[ "${1}" = "-p"     ]]; then pause="${2}";     shift;
     elif [[ "${1}" = "-t"     ]]; then TAG="${2}";       shift;
     elif [[ "${1}" = "-C"     ]]; then COUNTS="${2}";    shift;
