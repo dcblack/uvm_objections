@@ -1,3 +1,34 @@
 #!/bin/bash
 
-bin/doit -debug -o -1 -S questa -A 2 -L 3 -C 20 -M 20 -W 2 1.2
+# -o objection trace
+# -p pause
+# -q quiet
+
+basic_opts="-debug -o"
+agents=3
+levels=3
+useseq=1
+transactions=20
+propagate=0
+repeat=1
+switch=1
+messages=20
+warnings=2
+simulator=mentor
+versions="1.1d 1.2"
+
+if [[ $# -gt 0 ]]; then eval "$@"; fi
+
+bin/doit\
+  $basic_opts\
+  -s "$simulator"\
+  -a "$agents"\
+  -l "$levels"\
+  -c "$transactions"\
+  -r "$repeat"\
+  -p "$propagate"\
+  -u "$useseq"\
+  -x "$switch"\
+  -m "$messages"\
+  -w "$warnings"\
+  "$versions"
