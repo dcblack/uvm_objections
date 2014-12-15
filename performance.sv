@@ -228,7 +228,12 @@ package Performance_pkg;
   string SEP1 = {122{"#"}};
   string SEP2 = {120{"="}};
 
-  typedef uvm_integral_t tr_len_t;
+  `ifdef UVM_POST_VERSION_1_1
+  typedef uvm_integral_t integral_t;
+  `else
+  typedef uvm_bitstream_t integral_t;
+  `endif
+  typedef integral_t tr_len_t;
 
   longint unsigned measured_objections = 0;
 
@@ -720,7 +725,7 @@ package Performance_pkg;
     uvm_config_db#(longint)::set(uvm_top, "*", "warnings", warnings);
     `uvm_info("build_phase",$sformatf("warnings=%0d",warnings), UVM_NONE);
 
-    void'(uvm_config_db#(uvm_integral_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
+    void'(uvm_config_db#(integral_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_seq", use_seq);
     `uvm_info("build_phase",$sformatf("use_seq=%0d",use_seq), UVM_NONE);
 
@@ -774,7 +779,7 @@ package Performance_pkg;
     assert(warnings >= 0);
     objection = phase.get_objection();
     `ifdef UVM_POST_VERSION_1_1
-    void'(uvm_config_db#(uvm_integral_t)::get(this, "", "ripple", mode));
+    void'(uvm_config_db#(integral_t)::get(this, "", "ripple", mode));
     objection.set_propagate_mode(mode);
     `endif
     if (use_seq == 0)   features = {features, "; short-seq"}; else features = {features, "; long-seq"};
