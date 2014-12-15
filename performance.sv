@@ -1,7 +1,7 @@
 //File: defines.svh
 
-`ifndef USE_RTL
-  `define USE_RTL
+`ifndef USE_HDW
+  `define USE_HDW
 `endif
 
 // DESCRIPTION:
@@ -26,7 +26,7 @@
   `define PERIOD 4ns
 `endif
 `ifndef BUSY
-  `define BUSY 4 /*clocks*/
+  `define BUSY 3 /*clocks*/
 `endif
 `ifndef BITS
   `define BITS 32
@@ -54,33 +54,33 @@ module Elaborate;
   timeprecision 1ps;
   //----------------------------------------------------------------------------
   initial begin
-    $display("RTL_INFO: PERIOD=%0t",`PERIOD);
-    $display("RTL_INFO: BUSY=%0d",`BUSY);
-    $display("RTL_INFO: BITS=%0d",`BITS);
-    `ifdef USE_RTL
-    $display("RTL_INFO: USE_RTL defined");
+    $display("HDW_INFO: PERIOD=%0t",`PERIOD);
+    $display("HDW_INFO: BUSY=%0d",`BUSY);
+    $display("HDW_INFO: BITS=%0d",`BITS);
+    `ifdef USE_HDW
+    $display("HDW_INFO: USE_HDW defined");
     `else
-    $display("RTL_INFO: No using RTL");
+    $display("HDW_INFO: No using HDW");
     `endif
     `ifdef USE_MONITOR
-    $display("RTL_INFO: USE_MONITOR defined");
+    $display("HDW_INFO: USE_MONITOR defined");
     `else
-    $display("RTL_INFO: No using active monitor");
+    $display("HDW_INFO: No using active monitor");
     `endif
     `ifdef USE_CLOCKING
-    $display("RTL_INFO: USE_CLOCKING defined");
+    $display("HDW_INFO: USE_CLOCKING defined");
     `else
-    $display("RTL_INFO: No using clocking block");
+    $display("HDW_INFO: No using clocking block");
     `endif
     `ifdef USE_DO
-    $display("RTL_INFO: USE_DO defined enable use of uvm_do macros");
+    $display("HDW_INFO: USE_DO defined enable use of uvm_do macros");
     `else
-    $display("RTL_INFO: No uvm_do macros");
+    $display("HDW_INFO: No uvm_do macros");
     `endif
-    `ifdef RTL_NOISE
-    $display("RTL_INFO: RTL_NOISE defined to show initial %0d clocks of RTL activity",`RTL_NOISE);
+    `ifdef HDW_NOISE
+    $display("HDW_INFO: HDW_NOISE defined to show initial %0d clocks of HDW activity",`HDW_NOISE);
     `else
-    $display("RTL_INFO: RTL silent");
+    $display("HDW_INFO: HDW silent");
     `endif
   end
 endmodule
@@ -98,41 +98,47 @@ endmodule
 //
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
-interface My_intf ( input bit clk );
+interface My_intf ( input bit clock );
   logic  reset;
   logic  busy;
   Data_t data;
   Data_t result;
-  modport rtl_mp(output reset, input busy, input data, input clk, input result);
+  modport hdw_mp(output reset, input busy, input data, input clock, input result);
 `ifdef USE_CLOCKING
-  clocking cb @(posedge clk);
+  clocking cb @(posedge clock);
     output #1step data;
     input  #0     result;
     input  #0     busy;
   endclocking : cb
   modport test_mp(output reset, clocking cb);
 `else
-  modport test_mp(output reset, data, input clk, busy, result);
+  modport test_mp(output reset, data, input clock, busy, result);
 `endif
 endinterface : My_intf
 
 //File: design.sv
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  #####  ####### #    
-//  #    #    #    #    
-//  #    #    #    #    
-//  #####     #    #    
-//  #  #      #    #    
-//  #   #     #    #    
-//  #    #    #    #####
+//  #    #    #    #####  ####   #     #    #    #####  #####
+//  #    #   # #   #    # #   #  #  #  #   # #   #    # #    
+//  #    #  #   #  #    # #    # #  #  #  #   #  #    # #    
+//  ###### #     # #####  #    # #  #  # #     # #####  #####
+//  #    # ####### #  #   #    # #  #  # ####### #  #   #    
+//  #    # #     # #   #  #   #  #  #  # #     # #   #  #    
+//  #    # #     # #    # ####    ## ##  #     # #    # #####
 //
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
-// NOTE: Uses typedef Data_t; otherwise, normal RTL style design
+// NOTE: Uses typedef Data_t; otherwise, normal HDW style design
+//
+// Description:
+//   A change in data or reset results in the respective operation which is
+//   synchronized to the clock. Busy goes high for `BUSY clock cycles, which
+//   indicates operation.
+//
 module Design
         ( input reset
-        , input clk
+        , input clock
         , input Data_t data
         , output var Data_t result
         , output var bit    busy
@@ -143,27 +149,27 @@ module Design
   //----------------------------------------------------------------------------
   task Busy(int unsigned cycles);
     busy <= 1;
-    repeat (cycles) @(posedge clk);
+    repeat (cycles) @(posedge clock);
     busy <= 0;
   endtask : Busy
-  always @(posedge clk) begin : FF
+  always @(data or reset) begin : FF
+    @(posedge clock);
     if (reset) begin
       result <= 0;
-      busy <= 0;
       Busy(`BUSY);
-    end
-    else begin
-      result <= result + data;
+    end else begin
+      result <= #((`BUSY-1)*`PERIOD) result + data; // Propagation delay
       Busy(`BUSY);
     end
   end : FF
-  `ifdef RTL_NOISE
+  `ifdef HDW_NOISE
+  // Generate lots of data to show operation (normally off)
   initial begin
-    $display("RTL: reset clk busy data result");
-    $monitor("RTL: %t %b %b %b %h %h",$time,reset,clk,busy,data,result);
-    repeat (`RTL_NOISE) @(posedge clk);
+    $display("HDW: reset clock busy data result");
+    $monitor("HDW: %t %b %b %b %h %h",$time,reset,clock,busy,data,result);
+    repeat (`HDW_NOISE) @(posedge clock);
     $monitoroff;
-    $display("RTL: end of noise");
+    $display("HDW: end of noise");
   end
   `endif
 endmodule : Design
@@ -186,15 +192,15 @@ module Harness;
   timeunit 1ps;
   timeprecision 1ps;
   //----------------------------------------------------------------------------
-  bit clk = 0;
-  `ifdef USE_RTL
-  always #(`PERIOD/2) ++clk; // Generate clock
+  bit clock = 0;
+  `ifdef USE_HDW
+  always #(`PERIOD/2) ++clock; // Generate clock
   `endif
   // TODO: genvar loop to create many dut/interface pairs
-  My_intf if1 ( .clk );
+  My_intf if1 ( .clock );
   Design dut1
          ( .reset(if1.reset)
-         , .clk
+         , .clock
          , .data(if1.data)
          , .result(if1.result)
          , .busy(if1.busy)
@@ -446,14 +452,14 @@ package Performance_pkg;
           `uvm_info("Driver",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
           --messages;
         end
-        `ifdef USE_RTL
+        `ifdef USE_HDW
         vif.reset <= req.m_reset;
         vif.data  <= req.m_data;
-        @(posedge vif.clk);
+        @(posedge vif.clock);
         #1;
         vif.reset <= 0; // remove reset
         vif.data  <= 0;
-        @(posedge vif.clk);
+        @(posedge vif.clock);
         `endif
       end
       phase.drop_objection(this, obj_name);
