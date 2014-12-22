@@ -4,31 +4,37 @@
 # -p pause
 # -q quiet
 
-basic_opts="-debug -o"
+basic_opts="-debug "
 agents=3
-levels=3
+bfmobj=1
+monitor=1
+levels=5
 useseq=1
 transactions=20
 propagate=0
 repeat=1
 switch=1
-messages=20
+shape=0
+infos=20
 warnings=2
-simulator=mentor
+vendor="mentor"
 versions="1.1d 1.2"
 
 if [[ $# -gt 0 ]]; then eval "$@"; fi
 
 bin/doit\
   $basic_opts\
-  -s "$simulator"\
-  -a "$agents"\
-  -l "$levels"\
-  -c "$transactions"\
-  -r "$repeat"\
-  -p "$propagate"\
-  -u "$useseq"\
-  -x "$switch"\
-  -m "$messages"\
-  -w "$warnings"\
+  -V "$vendor"\
+  -A "$agents"\
+  -B "$bfmobj"\
+  -M "$monitor"\
+  -L "$levels"\
+  -C "$transactions"\
+  -R "$repeat"\
+  -P "$propagate"\
+  -U "$useseq"\
+  -X "$switch"\
+  -S "$shape"\
+  -I "$infos"\
+  -W "$warnings"\
   "$versions"

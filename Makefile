@@ -6,19 +6,25 @@ SRCS = formatn.cpp get_time.cpp performance.sv
 
 INCDIRS = +incdir+.
 
-RUN_OPTS+=$D 
-RUN_OPTS+=$O 
+RUN_OPTS+=$d 
+RUN_OPTS+=$o 
 ifdef L
   RUN_OPTS+='+uvm_set_config_int=*,level,$L' 
 endif
-ifdef M
-  RUN_OPTS+='+uvm_set_config_int=*,messages,$M' 
+ifdef I
+  RUN_OPTS+='+uvm_set_config_int=*,messages,$I' 
 endif
 ifdef W
   RUN_OPTS+='+uvm_set_config_int=*,warnings,$W' 
 endif
 ifdef A
   RUN_OPTS+='+uvm_set_config_int=*,agents,$A' 
+endif
+ifdef B
+  RUN_OPTS+='+uvm_set_config_int=*,bfm_object,$B' 
+endif
+ifdef M
+  RUN_OPTS+='+uvm_set_config_int=*,use_monitor,$M' 
 endif
 ifdef U
   RUN_OPTS+='+uvm_set_config_int=*,use_seq,$U' 
@@ -31,6 +37,9 @@ ifdef C
 endif
 ifdef P
   RUN_OPTS+='+uvm_set_config_int=*,ripple,$P' 
+endif
+ifdef S
+  RUN_OPTS+='+uvm_set_config_int=*,shape,$S' 
 endif
 ifdef X
   RUN_OPTS+='+uvm_set_config_string=*,switching,$X' 
@@ -199,9 +208,9 @@ The following options are available:
 
 Sets -L option of ./doit script with LIST, which is a space or comma separated list of integer levels.
 
-=item B<M="LIST">
+=item B<I="LIST">
 
-Sets -M option of ./doit script with LIST, which is a space or comma separated list of message counts.
+Sets -I option of ./doit script with LIST, which is a space or comma separated list of info counts.
 
 =item B<W="LIST">
 
@@ -212,10 +221,20 @@ Sets -W option of ./doit script with LIST, which is a space or comma separated l
 Sets -A option of ./doit script with LIST, which is a space or comma separated
 list of the number of agents to instantiate.
 
+=item B<B="LIST">
+
+Sets -B option of ./doit script with LIST, which is a space or comma separated
+list of 0/1 specifying whether to use BFM objections.
+
+=item B<M="LIST">
+
+Sets -M option of ./doit script with LIST, which is a space or comma separated
+list of 0/1 specifying whether to use the monitor.
+
 =item B<U="LIST">
 
 Sets -U option of ./doit script with LIST, which is a space or comma separated
-list of 0/1 specifing whether to use a full sequence (1) or a short 1ps
+list of 0/1 specifying whether to use a full sequence (1) or a short 1ps
 sequence.
 
 =item B<R="LIST">
@@ -234,6 +253,11 @@ repeat inner loop.
 
 Sets -P option of ./doit script with BOOL, which specifies whether to propagate
 objections (1) or not (0) -- affects 1.2 and above only.
+
+=item B<S=BOOLEAN>
+
+Sets -S option of ./doit script with BOOL, which specifies the shape of the agent/uvc
+arrays {SHAPE_WIDE=0, SHAPE_NARROW=1}.
 
 =item B<X="LIST">
 
