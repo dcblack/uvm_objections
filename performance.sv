@@ -570,7 +570,7 @@ package Performance_pkg;
     `uvm_component_utils(My_agent_t)
     // Class member data
     shortint       m_id = 0;
-    shortint       m_level = -1;
+    shortint       m_level = -1; //? not used ?
     My_sequencer_t m_sequencer;
     My_driver_t    m_driver;
     My_monitor_t   m_monitor;
@@ -619,6 +619,7 @@ package Performance_pkg;
   //  ##### #     #    #   
   //
   //////////////////////////////////////////////////////////////////////////////
+  typedef class My_test_t;
   class My_env_t extends uvm_env;
     //--------------------------------------------------------------------------
     `uvm_component_utils(My_env_t)
@@ -643,22 +644,33 @@ package Performance_pkg;
   function void My_env_t::build_phase(uvm_phase phase);
     string inst_nm;
     shortint unsigned width = 1;
+    My_test_t the_test;
+    My_env_t  parent;
     void'(uvm_config_db#(shape_t)::get(this, "", "shape", m_shape));
     assert(uvm_config_db#(shortint)::get(this, "", "agents", width))
     else `uvm_error("Performance","Missing agent configuration")
+    assert(uvm_config_db#(shortint)::get(this, "", "level", m_toplevel))
+    else `uvm_error("Performance","Missing level configuration")
+    if ($cast(the_test,get_parent())) begin
+      // We are at top
+      m_level = m_toplevel;
+    end else begin
+      $cast(parent,get_parent());
+      m_level = parent.m_level - 1;
+    end
+    `uvm_info("DEBUG",$sformatf("agents/width=%0d shape=%0d toplevel=%0d", width, m_shape,m_toplevel), UVM_DEBUG)
     if (m_level == m_toplevel) begin
+      // Build the width
       if (m_shape == SHAPE_NARROW) width = 1;
       inst_nm = $sformatf("uvc_l%0d",m_level);
       m_uvc = new[width];
       for (shortint unsigned i=0; i!=width; i++) begin
         m_uvc[i] = My_env_t::type_id::create($sformatf("%s[%0d]",inst_nm,i),this);
-        m_uvc[i].m_level = this.m_level-1;
       end
     end else if (m_level > 0) begin
       inst_nm = $sformatf("uvc_l%0d",m_level);
       m_uvc = new[1];
       m_uvc[0] = My_env_t::type_id::create(inst_nm,this);
-      m_uvc[0].m_level = this.m_level-1;
     end else begin // Bottom
       if (m_shape == SHAPE_WIDE) width = 1;
       m_agent = new[width];
@@ -719,6 +731,7 @@ package Performance_pkg;
     bit      bfm_object     = 1;   //< default
     shortint levels         = 2;   //< default
     shortint agents         = 1;   //< default
+    shape_t  shape          = SHAPE_WIDE; //< default
     tr_len_t tr_len         = 0;   //< default (0 = equal; else each nibble)
     longint  messages       = 0;
     longint  warnings       = 0;
@@ -737,13 +750,17 @@ package Performance_pkg;
     //
     ////////////////////////////////////////////////////////////////////////////
     // Manage configuration
-    void'(uvm_config_db#(integral_t)::get(this, "", "level", levels)); //<allow from command-line
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "level", levels)); //<allow from command-line
     uvm_config_db#(shortint)::set(uvm_top, "*", "level", levels);
     `uvm_info("build_phase",$sformatf("levels=%0d",levels), UVM_NONE);
 
-    void'(uvm_config_db#(integral_t)::get(this, "", "agents", agents)); //<allow from command-line
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "agents", agents)); //<allow from command-line
     uvm_config_db#(shortint)::set(uvm_top, "*", "agents", agents);
     `uvm_info("build_phase",$sformatf("agents=%0d",agents), UVM_NONE);
+
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "shape", shape)); //<allow from command-line
+    uvm_config_db#(shape_t)::set(uvm_top, "*", "shape", shape);
+    `uvm_info("build_phase",$sformatf("shape=%0d",shape), UVM_NONE);
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead
     // of raw integers on command-line
@@ -780,15 +797,15 @@ package Performance_pkg;
     uvm_config_db#(longint)::set(uvm_top, "*", "warnings", warnings);
     `uvm_info("build_phase",$sformatf("warnings=%0d",warnings), UVM_NONE);
 
-    void'(uvm_config_db#(integral_t)::get(this, "", "use_monitor", use_monitor)); //<allow from command-line
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_monitor", use_monitor)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_monitor", use_monitor);
     `uvm_info("build_phase",$sformatf("use_monitor=%0d",use_monitor), UVM_NONE);
 
-    void'(uvm_config_db#(integral_t)::get(this, "", "bfm_object", bfm_object)); //<allow from command-line
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "bfm_object", bfm_object)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "bfm_object", bfm_object);
     `uvm_info("build_phase",$sformatf("bfm_object=%0d", bfm_object), UVM_NONE);
 
-    void'(uvm_config_db#(integral_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_seq", use_seq);
     `uvm_info("build_phase",$sformatf("use_seq=%0d", use_seq), UVM_NONE);
 
@@ -812,7 +829,6 @@ package Performance_pkg;
 
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
-    m_env.m_toplevel = levels;
     `uvm_info("", $sformatf("Created %s", get_full_name()), UVM_NONE)
   endfunction : My_test_t::build_phase
 
@@ -841,7 +857,7 @@ package Performance_pkg;
     assert(uvm_config_db#(longint)  ::get(this, "", "count",       count));
     assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq",     use_seq));
     assert(uvm_config_db#(bit     ) ::get(this, "", "bfm_object",  bfm_object));
-    void' (uvm_config_db#(bit     ) ::get(this, "", "shape",       shape));
+    void' (uvm_config_db#(shape_t ) ::get(this, "", "shape",       shape));
     assert(uvm_config_db#(bit     ) ::get(this, "", "use_monitor", use_monitor));
     assert(uvm_config_db#(tr_len_t) ::get(this, "", "tr_len",      tr_len));
     assert(uvm_config_db#(shortint) ::get(this, "", "agents",      agents));
@@ -855,7 +871,7 @@ package Performance_pkg;
     assert(warnings >= 0);
     objection = phase.get_objection();
     `ifdef UVM_POST_VERSION_1_1
-    void'(uvm_config_db#(integral_t)::get(this, "", "ripple", mode));
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
     objection.set_propagate_mode(mode);
     `endif
     // Create brief string describing the features used
