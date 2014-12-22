@@ -60,7 +60,7 @@ Display this help.
 
 Number of levels of hierarchy above drivers
 
-=item B<-M> #
+=item B<-I> #
 
 Number of info messages to display
 
@@ -92,13 +92,25 @@ driver. Example: 3_2_1 means a length of 3ps
 for driver 2, 2ps for driver 1, and 1ps for driver 0.
 Unspecified drivers get a value of 1ps.
 
-=item B<-S> questa | ius | vcs
+=item B<-S> I<SHAPE>
 
-Specify simulator to use.
+Specify the shape to use: {SHAPE_WIDE=0, SHAPE_NARROW=1}
+
+=item B<-V> cadence | mentor | synopsys
+
+Specify vendor (or simulator) to use.
 
 =item B<-t> I<TAG>
 
 Specify a I<TAG> to include in log file name.
+
+=item B<-B> 0 | 1
+
+Specify whether to use BFM objections.
+
+=item B<-M> 0 | 1
+
+Specify whether to use the monitor.
 
 =item B<-U> 0 | 1
 
@@ -167,35 +179,38 @@ export TAG
 not_really=0
 export obj_trace
 
+function Uniq() {
+  perl -le 'for$r(@ARGV){next if exists $u{$r};push@r,$r;$u{$r}=1;}print"@r";' $@
+}
+
 function Split() {
   perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
 }
 
 function Analyze_uvm_objection_performance() {
-  #   1   2    3        4        5       6      7        8        9           10         11
-  # $SIM VERS L=LEVELS A=AGENTS C=COUNT P=PROP U=USESEQ R=TR_LEN X=SWITCHING M=MESSAGES W=WARNINGS
-  local SIM=${1} VERS=${2} LVLS=${3} AGTS=${4} CNT=${5} PROP=${6} U=${7} R=${8} X=${9} M=${10} W=${11}
-  shift; shift
+  local RUN=${1} VENDOR=${2} VERS=${3}
+  shift; shift; shift
   local var val
   for arg in $@; do
     if [[ $arg =~ [A-Za-z]=* ]]; then
       var=$(echo "$arg"|perl -pe 's/=.*//')
       val=$(echo "$arg"|perl -pe 's/.*=//')
-      local $var=$val
+      local $var
+      eval "$var=$val"
     fi
   done
-  O=
+  o=
   if [[ "$obj_trace" == 1 ]]; then
-    O="O=+UVM_OBJECTION_TRACE"
+    o="o=+UVM_OBJECTION_TRACE"
   fi
-  D=
+  d=
   if [[ "$debug" == 1 ]]; then
-    D="D=+UVM_VERBOSITY=UVM_DEBUG"
+    d="d=+UVM_VERBOSITY=UVM_DEBUG"
   fi
   local clean='clean'
   local LOG="$VERS"
   if [[ ${#VERS} = 3    ]]; then
-    if [[ "$P" = 0 ]]; then
+    if [[ "$PROP" = 0 ]]; then
       LOG="${LOG}_";
     else
       LOG="${LOG}+";
@@ -203,60 +218,70 @@ function Analyze_uvm_objection_performance() {
   fi
   LOG="$LOG-"
   local t
-  t=$(echo "U=$U"|perl -pe 's/=//'); LOG="$LOG$t"
-  t=$(echo "R=$R"|perl -pe 's/=//'); LOG="$LOG$t"
-  t=$(echo "X=$X"|perl -pe 's/=//'); LOG="$LOG$t"
+  t=$(echo "U=$U;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "R=$R;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "X=$X;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "S=$S;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "B=$B;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "M=$M;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "L=$L%"|perl -pe 's/=//;s/([L])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
-  t=$(echo "M=$M%"|perl -pe 's/=//;s/([M])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "I=$I%"|perl -pe 's/=//;s/([I])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
   t=$(echo "W=$W%"|perl -pe 's/=//;s/([W])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
   t=$(echo "A=$A"|perl -pe 's/=//'); LOG="$LOG$t"
-  case "$SIM" in
+  case "$VENDOR" in
     questa) LOG="q$LOG" ;;
     ius   ) LOG="i$LOG" ;;
     vcs   ) LOG="v$LOG" ;;
     aldec ) LOG="a$LOG" ;;
     *     ) LOG="_$LOG" ;;
   esac
-  LOG="$(echo $LOG|tr AXUR axur)" ; # force to lowercase
+  LOG="$(echo $LOG|tr BMSXUR bmsxur)" ; # force to lowercase
   LOG="$LOG$TAG"
   if [[ $not_really = 0 ]]; then
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
-    echo "Analyze_uvm_objection_performance ${SIM} ${VERS} $*"                             | tee    $LOG.txt
-    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* $D $O 2>&1" | tee -a $LOG.txt
-    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} "$@" $D $O 2>&1        | tee -a $LOG.txt
+    echo "Analyze_uvm_objection_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} $* $d $o 2>&1" | tee -a $LOG.txt
+    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} "$@" $d $o 2>&1        | tee -a $LOG.txt
   else
-    echo "% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${SIM}_std V=${VERS} $* $D $O 2>&1  | tee   $LOG.txt"
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} $* $d $o 2>&1  | tee   $LOG.txt"
   fi
 } #end Analyze_uvm_objection_performance
 
 ################################################################################
 function Doit() {
-  local ALL_VERSIONS="1.1b 1.1c 1.1d 1.2r 1.2"
+  #ocal ALL_VERSIONS="1.1b 1.1c 1.1d 1.2r 1.2"
+  local ALL_VERSIONS="1.1d 1.2r 1.2"
   local VERSIONS=""
   local verbose=0
   local pause=10
-  local MESSAGES=$MESSAGES
+  local INFOS=$INFOS
   local WARNINGS=$WARNINGS
   local LEVELS=$LEVELS
   local AGENTS=$AGENTS
   local COUNTS=$COUNTS
   local PROPAGATE=$PROPAGATE
   local TR_LEN=$TR_LEN
+  local USEBFM=$USEBFM
+  local USEMON=$USEMON
+  local SHAPE=$SHAPE
   local USESEQ=$USESEQ
-  local SIM=$SIM
+  local VENDOR=$VENDOR
   local SWITCHING=$SWITCHING
   local first_only=0
   local OPTS
   if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
   if [[ "$AGENTS"    = "" ]]; then AGENTS="2 4"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
-  if [[ "$MESSAGES"  = "" ]]; then MESSAGES="0 9000" ; fi
+  if [[ "$INFOS"     = "" ]]; then INFOS="0 9000"    ; fi
   if [[ "$WARNINGS"  = "" ]]; then WARNINGS="0 2"    ; fi
   if [[ "$PROPAGATE" = "" ]]; then PROPAGATE="1"     ; fi
   if [[ "$TR_LEN"    = "" ]]; then TR_LEN="0 12"     ; fi
+  if [[ "$USEBFM"    = "" ]]; then USEBFM="1"        ; fi
+  if [[ "$USEMON"    = "" ]]; then USEMON="1"        ; fi
+  if [[ "$SHAPE"     = "" ]]; then SHAPE="0"         ; fi
   if [[ "$USESEQ"    = "" ]]; then USESEQ="0 1"      ; fi
-  if [[ "$SIM"       = "" ]]; then SIM="all"         ; fi
+  if [[ "$VENDOR"    = "" ]]; then VENDOR="all"      ; fi
   if [[ "$SWITCHING" = "" ]]; then SWITCHING="1"     ; fi
 
   while  [[ $# -gt 0 && "${1}" =  [+-]* ]];do
@@ -275,11 +300,14 @@ function Doit() {
     elif [[ "${1}" = "-C"     ]]; then COUNTS="${2}";    shift;
     elif [[ "${1}" = "-A"     ]]; then AGENTS="${2}";    shift;
     elif [[ "${1}" = "-L"     ]]; then LEVELS="${2}";    shift;
-    elif [[ "${1}" = "-M"     ]]; then MESSAGES="${2}";  shift;
+    elif [[ "${1}" = "-I"     ]]; then INFOS="${2}";     shift;
     elif [[ "${1}" = "-P"     ]]; then PROPAGATE="${2}"; shift;
-    elif [[ "${1}" = "-S"     ]]; then SIM="${2}";       shift;
+    elif [[ "${1}" = "-V"     ]]; then VENDOR="${2}";    shift;
     elif [[ "${1}" = "-R"     ]]; then TR_LEN="${2}";    shift;
+    elif [[ "${1}" = "-B"     ]]; then USEBFM="${2}";    shift;
+    elif [[ "${1}" = "-M"     ]]; then USEMON="${2}";    shift;
     elif [[ "${1}" = "-U"     ]]; then USESEQ="${2}";    shift;
+    elif [[ "${1}" = "-S"     ]]; then SHAPE="${2}";     shift;
     elif [[ "${1}" = "-W"     ]]; then WARNINGS="${2}";  shift;
     elif [[ "${1}" = "-X"     ]]; then SWITCHING="${2}"; shift;
     elif [[ "${1}" = "-v"     ]]; then verbose=1;
@@ -287,48 +315,54 @@ function Doit() {
     fi
     shift
   done
-  SIMS=
+  VENDORS=
   while [[ $# -gt 0 ]]; do # Add user specified targets
     case "$1" in
-      all|aldec|cadence|mentor|synopsys|modelsim|questa|ius|vcs|riviera) SIMS="${SIMS} $1" ;;
+      all|aldec|cadence|mentor|synopsys|modelsim|questa|ius|vcs|riviera) VENDORS="${VENDORS} $1" ;;
       +*) OPTS="$OPTS $1" ;;
        *) VERSIONS="$VERSIONS $1" ;;
     esac
     shift
   done
-  if [[ "$SIMS" != "" ]]; then
-    if [[ "$SIM" = "all" ]]; then
-      SIM="$SIMS";
+  if [[ "$VENDORS" != "" ]]; then
+    if [[ "$VENDOR" = "all" ]]; then
+      VENDOR="$VENDORS";
     else
-      SIM="$SIM $SIMS";
+      VENDOR="$VENDOR $VENDORS";
     fi
   fi
   if [[ "$VERSIONS" = "" ]]; then # Use default list
     VERSIONS="$ALL_VERSIONS"
   fi
-  SIMS=
-  for S in $(Split $SIM); do
-    case "$S" in # Legal simulator target prefixes
-      aldec|riviera          ) SIMS="$SIMS aldec"  ;;
-      cadence|ius|incisive   ) SIMS="$SIMS ius"    ;;
-      mentor|questa|modelsim ) SIMS="$SIMS questa" ;;
-      synopsys|vcs           ) SIMS="$SIMS vcs"    ;;
-                 all) SIMS="$SIMS questa ius vcs"  ;;
-      *) echo "FATAL: Invalid simulator '$S' specified"; exit 1 ;;
+  VERSIONS=$(Uniq $VERSIONS)
+  VENDORS=
+  for V in $(Split $VENDOR); do
+    case "$V" in # Legal simulator target prefixes
+      aldec|riviera          ) VENDORS="$VENDORS aldec"           ;;
+      cadence|ius|incisive   ) VENDORS="$VENDORS ius"             ;;
+      mentor|questa|modelsim ) VENDORS="$VENDORS questa"          ;;
+      synopsys|vcs           ) VENDORS="$VENDORS vcs"             ;;
+                          all) VENDORS="$VENDORS questa ius vcs"  ;;
+      *) echo "FATAL: Invalid vendor/simulator '$V' specified"; exit 1 ;;
     esac
   done
+  VENDORS=$(Uniq $VENDORS)
   if [[ $pause -gt 0 && $pause -lt 10 ]]; then pause=10; fi # Minimum
 
+  let run=1
   let first=1
-  for S in $(Split $SIMS); do
+  for V in $(Split $VENDORS); do
     for L in $(Split $LEVELS); do
-      for M in $(Split $MESSAGES); do
+      for I in $(Split $INFOS); do
         for W in $(Split $WARNINGS); do
           for A in $(Split $AGENTS); do
             for U in $(Split $USESEQ); do
+            for B in $(Split $USEMON); do
+            for M in $(Split $USEBFM); do
+            for S in $(Split $SHAPE); do
               for R in $(Split $TR_LEN); do
                 for X in $(Split $SWITCHING); do
-                  for V in $(Split $VERSIONS); do
+                  for UVM in $(Split $VERSIONS); do
                     # Pause between runs to allow clean interrupt
                     if [[ $not_really = 0 && $first = 0 && $pause != 0 ]]; then
                       echo -n "Pausing $pause"
@@ -342,16 +376,17 @@ function Doit() {
                     fi
                     let first=0
 
-                    case "$V" in
-                      #     0                                 1    2   3         4         5            6    7    8       9         10   11
-                      1.1b) Analyze_uvm_objection_performance $S 1.1b L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
-                      1.1c) Analyze_uvm_objection_performance $S 1.1c L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
-                      1.1d) Analyze_uvm_objection_performance $S 1.1d L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
-                      1.2r) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=0          U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
-                      1.2 ) Analyze_uvm_objection_performance $S 1.2  L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
-                      1.* ) Analyze_uvm_objection_performance $S $V   L=$L A=$A C=$COUNTS P=$PROPAGATE U=$U R=$R X=$X OPTS="$OPTS" M=$M W=$W ;;
-                         *) echo "ERROR: Weird UVM version '$V'" ; exit 1 ;;
+                    case "$UVM" in
+                      1.1b) uv=1.1b; pm=$PROPAGATE  ;;
+                      1.1c) uv=1.1c; pm=$PROPAGATE  ;;
+                      1.1d) uv=1.1d; pm=$PROPAGATE  ;;
+                      1.2r) uv=1.2 ; pm=0           ;;
+                      1.2 ) uv=1.2 ; pm=$PROPAGATE  ;;
+                      1.* ) uv=$UVM; pm=$PROPAGATE  ;;
+                         *) echo "ERROR: Weird UVM version '$UVM'" ; exit 1 ;;
                     esac
+                    Analyze_uvm_objection_performance $run $V $uv L=$L A=$A C=$COUNTS P=$pm U=$U R=$R X=$X OPTS="$OPTS" I=$I W=$W B=$B M=$M S=$S
+                    let run++
                     if [[ $not_really = 0 ]]; then
                       echo ""
                     fi
@@ -361,6 +396,9 @@ function Doit() {
                   done
                 done
               done
+            done
+            done
+            done
             done
           done
         done
