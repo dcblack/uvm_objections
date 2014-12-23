@@ -1,0 +1,1 @@
+perl -pi -e 's{^( *end[a-z]+ ):( \w+::)}{$1//$2}' performance.sv
