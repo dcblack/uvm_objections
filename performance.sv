@@ -245,6 +245,7 @@ package Performance_pkg;
   const shape_t SHAPE_WIDE=0, SHAPE_NARROW=1;
 
   longint unsigned measured_objections = 0;
+  shortint g_next_id = 0;
 
   function automatic void bound_tr_len(ref tr_len_t tr_len, input shortint id);
       tr_len = (tr_len >> (4*id)) & 'hF;
@@ -269,6 +270,7 @@ package Performance_pkg;
     // FUTURE: Measure field automation macros
     //--------------------------------------------------------------------------
     // Class member data
+    static longint g_count = 0;
     rand bit     m_reset = 0;
     rand integer m_data  = 'hDEADBEEF;
     `uvm_object_utils_begin(My_transaction_t)
@@ -279,6 +281,7 @@ package Performance_pkg;
     // Constructor
     function new(string name="");
       super.new(name);
+      g_count++;
     endfunction
     //--------------------------------------------------------------------------
     function string convert2string;
@@ -331,6 +334,7 @@ package Performance_pkg;
     `uvm_object_utils(My_sequence_t)
     `uvm_declare_p_sequencer(My_sequencer_t)
     // Class member data
+    shortint m_level  = -1;
     shortint m_id     = -1;
     tr_len_t m_tr_len = 1;
     longint  m_count  = 0;
@@ -355,7 +359,7 @@ package Performance_pkg;
     assert(uvm_config_db#(tr_len_t)::get(p_sequencer, "", "tr_len", m_tr_len));
     bound_tr_len(m_tr_len, m_id);
     m_reps = m_count/m_tr_len;
-    `uvm_info("DEBUG",$sformatf("Starting %0d for %0d repetitions",m_id,m_reps), UVM_DEBUG)
+    `uvm_info("DEBUG",$sformatf("Starting %0d.%0d for %0d repetitions", m_level, m_id, m_reps), UVM_DEBUG)
   endtask : My_sequence_t::pre_start
   //----------------------------------------------------------------------------
   task My_sequence_t::body;
@@ -454,7 +458,7 @@ package Performance_pkg;
     if (m_switching == 0) #1ps; // no context-switching
     forever begin
       seq_item_port.get(req);
-      if (m_object) phase.raise_objection(this, obj_name);
+      if (m_object) phase.raise_objection(this, $sformatf("%s begin transmit",obj_name));
       if (m_switching == 1) begin // normal context switching
         repeat (m_tr_len) begin
           #1ps;
@@ -472,7 +476,7 @@ package Performance_pkg;
           `endif
         end //repeat
       end //if
-      if (m_object) phase.drop_objection(this, obj_name);
+      if (m_object) phase.drop_objection(this, $sformatf("%s end transmit",obj_name));
     end//forever
   endtask : My_driver_t::run_phase
   //----------------------------------------------------------------------------
@@ -541,13 +545,13 @@ package Performance_pkg;
     if (m_monitor) begin
       forever begin
         @(posedge m_vif.is_busy);
-        if (m_object) phase.raise_objection(this, obj_name);
+        if (m_object) phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
         if (m_id == 0 && m_warnings > 0) begin
           `uvm_warning("Driver","<warn>")
           --m_warnings;
         end
         @(negedge m_vif.is_busy);
-        if (m_object) phase.drop_objection(this, obj_name);
+        if (m_object) phase.drop_objection(this, $sformatf("%s end observation",obj_name));
       end//repeat
     end
   endtask : My_monitor_t::run_phase
@@ -570,7 +574,7 @@ package Performance_pkg;
     `uvm_component_utils(My_agent_t)
     // Class member data
     shortint       m_id = 0;
-    shortint       m_level = -1; //? not used ?
+    shortint       m_level = -1;
     My_sequencer_t m_sequencer;
     My_driver_t    m_driver;
     My_monitor_t   m_monitor;
@@ -588,6 +592,7 @@ package Performance_pkg;
 //IFile: my_agent.sv
   //----------------------------------------------------------------------------
   function void My_agent_t::build_phase(uvm_phase phase);
+    m_id = g_next_id++;
     m_sequencer = My_sequencer_t::type_id::create($sformatf("m_sequencer[%0d]",m_id),this);
     m_driver    = My_driver_t   ::type_id::create($sformatf("m_driver[%0d]",m_id),this);
     m_monitor   = My_monitor_t  ::type_id::create($sformatf("m_monitor[%0d]",m_id),this);
@@ -619,13 +624,12 @@ package Performance_pkg;
   //  ##### #     #    #   
   //
   //////////////////////////////////////////////////////////////////////////////
-  typedef class My_test_t;
   class My_env_t extends uvm_env;
     //--------------------------------------------------------------------------
     `uvm_component_utils(My_env_t)
     // Class member data
-    shortint   m_toplevel = 0;
     shortint   m_level = -1; // invalid
+    shortint   m_id    = -1; // invalid
     shape_t    m_shape = SHAPE_WIDE;
     My_env_t   m_uvc[];
     My_agent_t m_agent[];
@@ -644,39 +648,34 @@ package Performance_pkg;
   function void My_env_t::build_phase(uvm_phase phase);
     string inst_nm;
     shortint unsigned width = 1;
-    My_test_t the_test;
     My_env_t  parent;
+    m_id = g_next_id++;
     void'(uvm_config_db#(shape_t)::get(this, "", "shape", m_shape));
     assert(uvm_config_db#(shortint)::get(this, "", "agents", width))
     else `uvm_error("Performance","Missing agent configuration")
-    assert(uvm_config_db#(shortint)::get(this, "", "level", m_toplevel))
+    assert(uvm_config_db#(shortint)::get(this, "", "level", m_level))
     else `uvm_error("Performance","Missing level configuration")
-    if ($cast(the_test,get_parent())) begin
-      // We are at top
-      m_level = m_toplevel;
-    end else begin
-      $cast(parent,get_parent());
+    if ($cast(parent,get_parent())) begin
       m_level = parent.m_level - 1;
     end
-    `uvm_info("DEBUG",$sformatf("agents/width=%0d shape=%0d toplevel=%0d", width, m_shape,m_toplevel), UVM_DEBUG)
-    if (m_level == m_toplevel) begin
+    `uvm_info("DEBUG",$sformatf("env.id=%0d agents/width=%0d shape=%0d level=%0d", m_id, width, m_shape,m_level), UVM_DEBUG)
+    if (parent == null) begin
       // Build the width
       if (m_shape == SHAPE_NARROW) width = 1;
-      inst_nm = $sformatf("uvc_l%0d",m_level);
+      inst_nm = $sformatf("uvc_T%0d",m_level);
       m_uvc = new[width];
       for (shortint unsigned i=0; i!=width; i++) begin
-        m_uvc[i] = My_env_t::type_id::create($sformatf("%s[%0d]",inst_nm,i),this);
+        m_uvc[i] = My_env_t::type_id::create($sformatf("%s[%0d]", inst_nm, g_next_id+i*m_level),this);
       end
     end else if (m_level > 0) begin
-      inst_nm = $sformatf("uvc_l%0d",m_level);
+      inst_nm = $sformatf("uvc_L%0d[%0d]", m_level, g_next_id);
       m_uvc = new[1];
       m_uvc[0] = My_env_t::type_id::create(inst_nm,this);
     end else begin // Bottom
       if (m_shape == SHAPE_WIDE) width = 1;
       m_agent = new[width];
       for (shortint unsigned i=0; i!=width; i++) begin
-        m_agent[i] = My_agent_t::type_id::create($sformatf("m_agent[%0d]",i),this);
-        m_agent[i].m_id = i%($bits(tr_len_t)/4);
+        m_agent[i] = My_agent_t::type_id::create($sformatf("m_agent[%0d]", g_next_id+i),this);
         m_agent[i].m_level = this.m_level;
       end
     end
@@ -910,14 +909,22 @@ package Performance_pkg;
     begin
       foreach (seqrs[i]) begin
         My_sequencer_t seqr;
-        My_sequence_t seq;
+        My_agent_t agent;
         if (!$cast(seqr, seqrs[i])) continue; // skip accidently named non-sequencers
-        seq = My_sequence_t::type_id::create($sformatf("seq[%0d]", i));
-        seq.m_id = seqr.m_id;
+        $cast(agent,seqr.get_parent());
+        `uvm_info("DEBUG",$sformatf("Found sequencer[%0d] %0d.%0d", i, agent.m_level, seqr.m_id), UVM_DEBUG)
         fork 
           shortint id = i;
           begin
-            `uvm_info("DEBUG",$sformatf("Starting %0d", seq.m_id), UVM_DEBUG)
+            My_agent_t     agent;
+            My_sequencer_t seqr;
+            My_sequence_t  seq;
+            $cast(seqr, seqrs[id]);
+            $cast(agent,seqr.get_parent());
+            seq = My_sequence_t::type_id::create($sformatf("seq[%0d]", id));
+            seq.m_id = seqr.m_id;
+            seq.m_level = agent.m_level;
+            `uvm_info("DEBUG",$sformatf("Starting %0d.%0d", seq.m_level, seq.m_id), UVM_DEBUG)
             seq.start(seqr);
           end
         join_none
@@ -945,6 +952,7 @@ package Performance_pkg;
     longint cpu_ms, wall_ms;
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
+    `uvm_info("report_phase", $sformatf("%0d transactions created", My_transaction_t::g_count), UVM_NONE)
     `uvm_info("report_phase"
              , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                         , `UVM_VERSION_STRING
