@@ -950,9 +950,12 @@ package Performance_pkg;
   //--------------------------------------------------------------------------
   function void My_test_t::report_phase(uvm_phase phase);
     longint cpu_ms, wall_ms;
+    string sep1;
+    sep1 = {80{"%"}};
+    sep1 = {"\n",sep1, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
-    `uvm_info("report_phase", $sformatf("%0d transactions created", My_transaction_t::g_count), UVM_NONE)
+    `uvm_info("report_phase", $sformatf("%s%0d transactions created", sep1, My_transaction_t::g_count), UVM_NONE)
     `uvm_info("report_phase"
              , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                         , `UVM_VERSION_STRING
