@@ -36,6 +36,30 @@ This script uses a specified simulator (default Mentor questa) to run
 UVM objections performance testing. Default is to raise and lower objections
 millions of times and report the overall CPU time.
 
+=head1 QUICK OPTIONS
+
+    -1      single test
+    -A #    agents
+    -B 0|1  bfm (driver/monitor) objections
+    -C #    count
+    -h      help
+    -I #    infos
+    -L #    levels of hierarchy in agent
+    -M 0|1  monitor in/active
+    -n      not really
+    -o      objection tracing
+    -p #    pause # seconds between simulations
+    -P 0|1  propagate objections up hierarchy
+    -q      quiet
+    -R LIST  run-lengths of transactions
+    -S 0|1  shape wide|narrow
+    -t TAG  part of logfile name
+    -U 0|1  use short|full sequence
+    -V LIST vendor list
+    -v      verbose
+    -W #    warnings
+    -X #    context switching choice
+
 =head1 OPTIONS
 
 =over
@@ -44,25 +68,33 @@ millions of times and report the overall CPU time.
 
 Run a single test (pipe cleaner).
 
-=item B<-C> #
-
-Number of times to repeat inner loop
-
 =item B<-A> #
 
 Number of agents to instantiate
+
+=item B<-B> 0 | 1
+
+Specify whether to use BFM objections.
+
+=item B<-C> #
+
+Number of times to repeat inner loop
 
 =item B<-h>
 
 Display this help.
 
+=item B<-I> #
+
+Number of info messages to display
+
 =item B<-L> #
 
 Number of levels of hierarchy above drivers
 
-=item B<-I> #
+=item B<-M> 0 | 1
 
-Number of info messages to display
+Specify whether to use the monitor.
 
 =item B<-n>
 
@@ -96,25 +128,17 @@ Unspecified drivers get a value of 1ps.
 
 Specify the shape to use: {SHAPE_WIDE=0, SHAPE_NARROW=1}
 
-=item B<-V> cadence | mentor | synopsys
-
-Specify vendor (or simulator) to use.
-
 =item B<-t> I<TAG>
 
 Specify a I<TAG> to include in log file name.
 
-=item B<-B> 0 | 1
-
-Specify whether to use BFM objections.
-
-=item B<-M> 0 | 1
-
-Specify whether to use the monitor.
-
 =item B<-U> 0 | 1
 
 Specify whether to use a full sequence (1) or a short 1ps sequence.
+
+=item B<-V> cadence | mentor | synopsys
+
+Specify vendor (or simulator) to use.
 
 =item B<-v>
 
@@ -132,7 +156,7 @@ Specify context switching choice.
 
 =head1 VERSIONS
 
-Supported versions are:
+Supported UVM versions are:
 
 =over
 
