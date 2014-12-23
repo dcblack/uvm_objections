@@ -883,7 +883,7 @@ package Performance_pkg;
     if (switching == 0)   m_features = {m_features, "; limited-switching"};
     if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)};
     if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)};
-    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
+    objection.set_drain_time(uvm_top, 100*`CLOCK_PERIOD);
     uvm_top.set_timeout(1000ms);
     phase.raise_objection(this, "raising to allow setup"); // allow setup
     m_starting_event = m_global_event_pool.get("starting");
