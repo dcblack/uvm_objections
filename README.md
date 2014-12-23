@@ -32,7 +32,7 @@ For more sophisticated runs,
 2. Use custom make command:
 
 ``
-    % make it ARGS="-C 1e9 -L 4 -S vcs -T x 1.2r"
+    % make it ARGS="-C 1e9 -L 4 -V vcs 1.2r"
 ``
 
 Or read Makefile documentation:
@@ -86,7 +86,7 @@ The following are required to get this working (some obvious, some not so much):
   + Mentor Questa
   + Synopsys VCS
   + others should work with some finnagling, but are untested at present
-- C++ compiler
+- C++ compiler (compatible with your simulator(s))
   + gcc 4.1 or better
 - bash
 - perl5
