@@ -1,0 +1,3 @@
+#!/bin/bash
+F=performance.sv
+perl -pi -e 'm{(end(task|function)) //}&&s{ //}{};' $F
