@@ -428,7 +428,7 @@ package Performance_pkg;
 //IFile: my_driver.sv
   //----------------------------------------------------------------------------
   function void My_driver_t::connect_phase(uvm_phase phase);
-    `uvm_info("", "Created", UVM_NONE)
+    `uvm_info("connect_phase", "Created driver", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
     assert(uvm_config_db#(bit)     ::get(this, "", "bfm_object", m_object));
     assert(uvm_config_db#(longint) ::get(this, "", "messages",   m_messages));
@@ -520,7 +520,7 @@ package Performance_pkg;
 //IFile: my_monitor.sv
   //----------------------------------------------------------------------------
   function void My_monitor_t::connect_phase(uvm_phase phase);
-    `uvm_info("build_phase", "Created", UVM_NONE)
+    `uvm_info("connect_phase", "Created monitor", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
     assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_monitor));
     assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_object));
@@ -828,7 +828,7 @@ package Performance_pkg;
 
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
-    `uvm_info("", $sformatf("Created %s", get_full_name()), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("Created %s", get_full_name()), UVM_NONE)
   endfunction : My_test_t::build_phase
 
   //----------------------------------------------------------------------------
@@ -881,9 +881,9 @@ package Performance_pkg;
     if (tr_len != 0)      m_features = {m_features, $sformatf("; tr%0X", tr_len)};
     if (mode == 0)        m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
     if (switching == 0)   m_features = {m_features, "; limited-switching"};
-    if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)};
-    if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)};
-    objection.set_drain_time(uvm_top, 100*`CLOCK_PERIOD);
+    if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
+    if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
+    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
     uvm_top.set_timeout(1000ms);
     phase.raise_objection(this, "raising to allow setup"); // allow setup
     m_starting_event = m_global_event_pool.get("starting");
@@ -931,7 +931,7 @@ package Performance_pkg;
         #1;
       end
       wait fork;
-      `uvm_info("DEBUG","All forked processes completed", UVM_DEBUG)
+      `uvm_info("main_phase","All forked processes completed", UVM_NONE)
     end
     phase.drop_objection(this, "lowering at end of top sequence"); // simulate sequence done
     #1ps;
