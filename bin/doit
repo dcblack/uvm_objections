@@ -211,7 +211,7 @@ function Split() {
   perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
 }
 
-function Analyze_uvm_objection_performance() {
+function Analyze_performance() {
   local RUN=${1} VENDOR=${2} VERS=${3}
   shift; shift; shift
   local var val
@@ -227,8 +227,10 @@ function Analyze_uvm_objection_performance() {
   if [[ "$obj_trace" == 1 ]]; then
     o="o=+UVM_OBJECTION_TRACE"
   fi
-  d="d=+UVM_VERBOSITY=UVM_NONE"
-  if [[ "$debug" == 1 ]]; then
+  d=
+  if [[ "$verbose" != "" ]]; then
+    d="d=+UVM_VERBOSITY=UVM_$(echo $verbose|tr a-z A-Z)"
+  elif [[ "$debug" == 1 ]]; then
     d="d=+UVM_VERBOSITY=UVM_DEBUG"
   fi
   local clean='clean'
@@ -264,20 +266,21 @@ function Analyze_uvm_objection_performance() {
   if [[ $not_really = 0 ]]; then
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
-    echo "Analyze_uvm_objection_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
+    echo "Analyze_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
     echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} $* $d $o 2>&1" | tee -a $LOG.txt
     env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} "$@" $d $o 2>&1        | tee -a $LOG.txt
   else
     echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} $* $d $o 2>&1  | tee   $LOG.txt"
   fi
-} #end Analyze_uvm_objection_performance
+} #end Analyze_performance
 
 ################################################################################
 function Doit() {
   #ocal ALL_VERSIONS="1.1b 1.1c 1.1d 1.2r 1.2"
   local ALL_VERSIONS="1.1d 1.2r 1.2"
   local VERSIONS=""
-  local verbose=0
+  local verbose=""
+  local quiet=0
   local pause=10
   local INFOS=$INFOS
   local WARNINGS=$WARNINGS
@@ -310,7 +313,7 @@ function Doit() {
 
   while  [[ $# -gt 0 && "${1}" =  [+-]* ]];do
     if   [[ "${1}" = "-1"     ]]; then first_only=1;
-    elif [[ "${1}" = "-q"     ]]; then verbose=0;
+    elif [[ "${1}" = "-q"     ]]; then quiet=1; verbose="NONE";
     elif [[ "${1}" = "-h"     ]]; then Help;
     elif [[ "${1}" = "-help"  ]]; then Help;
     elif [[ "${1}" = "--help" ]]; then Help;
@@ -334,7 +337,7 @@ function Doit() {
     elif [[ "${1}" = "-S"     ]]; then SHAPE="${2}";     shift;
     elif [[ "${1}" = "-W"     ]]; then WARNINGS="${2}";  shift;
     elif [[ "${1}" = "-X"     ]]; then SWITCHING="${2}"; shift;
-    elif [[ "${1}" = "-v"     ]]; then verbose=1;
+    elif [[ "${1}" = "-v"     ]]; then verbose="${2}";   shift; quiet=0;
     else                               OPTS="$OPTS ${1}"
     fi
     shift
@@ -409,7 +412,7 @@ function Doit() {
                       1.* ) uv=$UVM; pm=$PROPAGATE  ;;
                          *) echo "ERROR: Weird UVM version '$UVM'" ; exit 1 ;;
                     esac
-                    Analyze_uvm_objection_performance $run $V $uv L=$L A=$A C=$COUNTS P=$pm U=$U R=$R X=$X OPTS="$OPTS" I=$I W=$W B=$B M=$M S=$S
+                    Analyze_performance $run $V $uv L=$L A=$A C=$COUNTS P=$pm U=$U R=$R X=$X OPTS="$OPTS" I=$I W=$W B=$B M=$M S=$S
                     let run++
                     if [[ $not_really = 0 ]]; then
                       echo ""
