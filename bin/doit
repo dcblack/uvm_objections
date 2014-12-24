@@ -227,7 +227,7 @@ function Analyze_uvm_objection_performance() {
   if [[ "$obj_trace" == 1 ]]; then
     o="o=+UVM_OBJECTION_TRACE"
   fi
-  d=
+  d="d=+UVM_VERBOSITY=UVM_NONE"
   if [[ "$debug" == 1 ]]; then
     d="d=+UVM_VERBOSITY=UVM_DEBUG"
   fi
