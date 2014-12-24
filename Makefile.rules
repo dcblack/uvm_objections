@@ -133,6 +133,10 @@ Run UVM under Synopsys VCS for $(SRCS) using $(UVM_HOME) instead of built-in UVM
 
 Remove automatically generated files and libraries from (old) simulations.
 
+=item B<sha1>
+
+Display git sha1 hashes of source files.
+
 =item B<version>
 
 Display UVM version
@@ -314,7 +318,7 @@ PHONIES := \
   ius ius_debug ius_std ius_std_debug ius-debug ius-std ius-std-debug\
   questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
   vcs vcs_debug vcs_std\
-  clean starting finished version notify it
+  clean starting finished sha1 version notify it
 
 DFLT        := help
 
@@ -346,6 +350,10 @@ finished:
 	@echo -n "TIMESTAMP: Finished at "; date '+%s  %a %b %d %T %Z %Y'
 	@echo $(SEP2)
 
+sha1:
+	@echo "INFO: Sha1 sums -"
+	@for f in ${SRCS}; do echo "  $$f `git hash-object $$f`"; done
+
 version:
 	@echo "INFO: UVM version: $(UVM_VER)$(UVM_SUB_VER)"
 
@@ -357,56 +365,56 @@ version:
 	./$@
 
 #-------------------------------------------------------------------------------
-ius: version $(DPI_LIBS)
+ius: sha1 version $(DPI_LIBS)
 	$(IRUN) $(IUS_OPTS) -uvmhome $(IUS_HOME)/tools/$(UVM_VER) $(INCDIRS) $(SRCS) $(EXTRA_IUS_RUNOPTS)
 
 
 ius-debug: ius_debug
-ius_debug: version $(DPI_LIBS)
+ius_debug: sha1 version $(DPI_LIBS)
 	$(IRUN) $(IUS_OPTS) -uvmhome $(IUS_HOME)/tools/$(UVM_VER) $(INCDIRS) $(SRCS) +access+rwc -gui $(EXTRA_IUS_RUNOPTS)
 
 ius-std: ius_std
-ius_std: version $(DPI_LIBS)
+ius_std: sha1 version $(DPI_LIBS)
 	@$(MAKE) starting
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(IRUN) $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -sv_lib uvm_dpi -loadpli $(IUS_PLILIB) $(EXTRA_IUS_RUNOPTS)
 	@$(MAKE) finished
 
 ius-std-debug: ius_std_debug
-ius_std_debug: version $(DPI_LIBS)
+ius_std_debug: sha1 version $(DPI_LIBS)
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(IRUN) -uvmnoautocompile $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) +access+rwc -gui -sv_lib uvm_dpi  -loadpli $(IUS_PLILIB) $(EXTRA_IUS_RUNOPTS)
 
 #-------------------------------------------------------------------------------
-questa: version $(DPI_LIBS)
+questa: sha1 version $(DPI_LIBS)
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS)+$(QUESTA_HOME)/verilog_src/uvm-$(UVM_VER)$(UVM_SUB_VER)/src $(SRCS) -R -sv_lib $(QUESTA_LIBS) $(EXTRA_QUESTA_RUNOPTS)
 
 questa-debug: questa_debug
-questa_debug: version $(DPI_LIBS)
+questa_debug: sha1 version $(DPI_LIBS)
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS)+$(QUESTA_HOME)/verilog_src/uvm-$(UVM_VER)$(UVM_SUB_VER)/src $(SRCS) -R -sv_lib $(QUESTA_LIBS) -gui $(EXTRA_QUESTA_RUNOPTS)
 
 questa-std: questa_std
-questa_std: version $(DPI_LIBS)
+questa_std: sha1 version $(DPI_LIBS)
 	@$(MAKE) starting
 	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi $(EXTRA_QUESTA_RUNOPTS)
 	@$(MAKE) finished
 
 questa-std-debug: questa_std_debug
-questa_std_debug: version $(DPI_LIBS)
+questa_std_debug: sha1 version $(DPI_LIBS)
 	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi -gui $(EXTRA_QUESTA_RUNOPTS)
 
 #-------------------------------------------------------------------------------
-vcs: version $(DPI_LIBS)
+vcs: sha1 version $(DPI_LIBS)
 	$(VCS) $(VCS_OPTS) -ntb_opts uvm $(INCDIRS) $(SRCS) -R $(EXTRA_VCS_RUNOPTS)
 
 vcs-debug: vcs_debug
-vcs_debug: version $(DPI_LIBS)
+vcs_debug: sha1 version $(DPI_LIBS)
 	$(VCS) $(VCS_OPTS) -ntb_opts uvm $(INCDIRS) $(SRCS) -R -gui $(EXTRA_VCS_RUNOPTS)
 
 vcs-std: vcs_std
-vcs_std: version $(DPI_LIBS)
+vcs_std: sha1 version $(DPI_LIBS)
 	@$(MAKE) starting
 	$(VCS) $(VCS_OPTS) +acc +vpi $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) \
 	$(UVM_HOME)/src/dpi/uvm_dpi.cc -CFLAGS -DVCS -R $(EXTRA_VCS_RUNOPTS)
