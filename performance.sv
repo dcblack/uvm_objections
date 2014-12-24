@@ -712,6 +712,7 @@ package Performance_pkg;
     endfunction
     //--------------------------------------------------------------------------
     extern function void build_phase(uvm_phase phase);
+    extern task run_phase(uvm_phase phase);
     extern task reset_phase(uvm_phase phase);
     extern task main_phase(uvm_phase phase);
     extern task shutdown_phase(uvm_phase phase);
@@ -835,6 +836,17 @@ package Performance_pkg;
   task My_test_t::reset_phase(uvm_phase phase);
     `uvm_info("build_phase",$sformatf("%s\nRUNNING\n%s", SEP1, SEP2), UVM_NONE);
   endtask : My_test_t::reset_phase
+
+  //----------------------------------------------------------------------------
+  task My_test_t::run_phase(uvm_phase phase);
+    uvm_objection objection;
+    objection = phase.get_objection();
+    `ifdef UVM_POST_VERSION_1_1
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
+    objection.set_propagate_mode(mode);
+    `endif
+    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
+  endtask : My_test_t::run_phase
 
   //----------------------------------------------------------------------------
   task My_test_t::main_phase(uvm_phase phase);
