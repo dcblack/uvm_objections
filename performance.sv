@@ -244,7 +244,7 @@ package Performance_pkg;
   typedef shortint shape_t;
   const shape_t SHAPE_WIDE=0, SHAPE_NARROW=1;
 
-  longint unsigned measured_objections = 0;
+  longint unsigned g_measured_objections = 0;
   shortint g_next_id = 0;
 
   function automatic void bound_tr_len(ref tr_len_t tr_len, input shortint id);
@@ -442,7 +442,7 @@ package Performance_pkg;
     if (m_object) phase.raise_objection(this, "Raise to get off zero");
     #1; // Get off zero
     if (m_object) phase.drop_objection(this, "Drop and wait to start");
-    measured_objections += m_count/m_tr_len;
+    if (!m_object) g_measured_objections += m_count/m_tr_len;
     m_starting_event.wait_trigger();
     //////////////////////////////////////////////////////////////////////////
     //
@@ -458,7 +458,10 @@ package Performance_pkg;
     if (m_switching == 0) #1ps; // no context-switching
     forever begin
       seq_item_port.get(req);
-      if (m_object) phase.raise_objection(this, $sformatf("%s begin transmit",obj_name));
+      if (m_object) begin
+        phase.raise_objection(this, $sformatf("%s begin transmit",obj_name));
+        g_measured_objections++;
+      end
       if (m_switching == 1) begin // normal context switching
         repeat (m_tr_len) begin
           #1ps;
@@ -545,7 +548,10 @@ package Performance_pkg;
     if (m_monitor) begin
       forever begin
         @(posedge m_vif.is_busy);
-        if (m_object) phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
+        if (m_object) begin
+          phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
+          g_measured_objections++;
+        end
         if (m_id == 0 && m_warnings > 0) begin
           `uvm_warning("Driver","<warn>")
           --m_warnings;
@@ -839,6 +845,7 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::run_phase(uvm_phase phase);
+    bit      mode = 1; //< default old way
     uvm_objection objection;
     objection = phase.get_objection();
     `ifdef UVM_POST_VERSION_1_1
@@ -902,7 +909,6 @@ package Performance_pkg;
     #2ps; // get ahead of drivers and monitors
     `uvm_info("main_phase", $sformatf("Running %0d x %s iterations%s", agents, formatn(count), m_features), UVM_NONE)
     phase.drop_objection(this, "lowering after setup");
-    measured_objections += 1;
     //////////////////////////////////////////////////////////////////////////
     //
     //   ####  #######    #    #####  #######
@@ -918,6 +924,7 @@ package Performance_pkg;
     m_cpu_starting_time  = get_cpu_time();
     m_wall_starting_time = get_wall_time();
     phase.raise_objection(this, "raising to start top sequence"); // simulate sequence start
+    g_measured_objections++;
     begin
       foreach (seqrs[i]) begin
         My_sequencer_t seqr;
@@ -951,6 +958,7 @@ package Performance_pkg;
   //--------------------------------------------------------------------------
   task My_test_t::shutdown_phase(uvm_phase phase);
     phase.raise_objection(this, "raising to extend driver time"); // simulate sequence start
+    g_measured_objections++;
     #(10*`CLOCK_PERIOD);
     phase.drop_objection(this, "lowering to end extension"); // simulate sequence done
   endtask : My_test_t::shutdown_phase
@@ -967,11 +975,11 @@ package Performance_pkg;
     sep1 = {"\n",sep1, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
-    `uvm_info("report_phase", $sformatf("%s%0d transactions created", sep1, My_transaction_t::g_count), UVM_NONE)
+    `uvm_info("report_phase", $sformatf("%s%0d transactions created", sep1, formatn(My_transaction_t::g_count)), UVM_NONE)
     `uvm_info("report_phase"
              , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                         , `UVM_VERSION_STRING
-                        , formatn(measured_objections)
+                        , formatn(g_measured_objections)
                         , formatn(cpu_ms)
                         , formatn(wall_ms)
                         , m_features
