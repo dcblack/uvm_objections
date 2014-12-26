@@ -840,7 +840,7 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::reset_phase(uvm_phase phase);
-    `uvm_info("build_phase",$sformatf("%s\nRUNNING\n%s", SEP1, SEP2), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("\n%s\nRUNNING\n%s", SEP1, SEP2), UVM_NONE);
   endtask : My_test_t::reset_phase
 
   //----------------------------------------------------------------------------
@@ -869,8 +869,11 @@ package Performance_pkg;
     bit      mode = 1; //< default old way
     longint  messages = 0;
     longint  warnings = 0;
-    uvm_objection objection;
     uvm_component seqrs[$];
+    uvm_objection objection;
+    objection = phase.get_objection();
+    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
+    uvm_top.set_timeout(1000ms);
     uvm_top.find_all("*m_sequencer*", seqrs);
     assert(uvm_config_db#(longint)  ::get(this, "", "count",       count));
     assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq",     use_seq));
@@ -887,7 +890,6 @@ package Performance_pkg;
     assert(agents   >= 1);
     assert(messages >= 0);
     assert(warnings >= 0);
-    objection = phase.get_objection();
     `ifdef UVM_POST_VERSION_1_1
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
     objection.set_propagate_mode(mode);
@@ -902,8 +904,8 @@ package Performance_pkg;
     if (switching == 0)   m_features = {m_features, "; limited-switching"};
     if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
     if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
-    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
-    uvm_top.set_timeout(1000ms);
+    #0;
+    #0;
     phase.raise_objection(this, "raising to allow setup"); // allow setup
     m_starting_event = m_global_event_pool.get("starting");
     #2ps; // get ahead of drivers and monitors
@@ -957,6 +959,9 @@ package Performance_pkg;
   endtask : My_test_t::main_phase
   //--------------------------------------------------------------------------
   task My_test_t::shutdown_phase(uvm_phase phase);
+    uvm_objection objection;
+    objection = phase.get_objection();
+    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
     phase.raise_objection(this, "raising to extend driver time"); // simulate sequence start
     g_measured_objections++;
     #(10*`CLOCK_PERIOD);
