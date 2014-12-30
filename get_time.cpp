@@ -1,5 +1,5 @@
-// To self-test:
-// % g++ -DGET_TIME_SELFTEST -o get_time get_time.cpp && ./get_time 24
+// FILE: get_time.pp
+// INFO: Routines to get CPU and Wall time in seconds as a double.
 #ifndef GET_TIME_SELFTEST
 #include "svdpi.h"
 #endif
@@ -64,6 +64,15 @@ double get_cpu_time(void)
 }
 #endif
 ////////////////////////////////////////////////////////////////////////////////
+char const * const HELP =
+"NAME\n"
+"  get_time - self-test of the get_cpu_time() and get_wall_time() routines.\n"
+"EXAMPLES\n"
+"  # To create self-test\n"
+"  g++ -DGET_TIME_SELFTEST -o get_time get_time.cpp && ./get_time 24\n"
+"  ./get_time 28\n"
+;
+//------------------------------------------------------------------------------
 #ifdef GET_TIME_SELFTEST
 #include <iostream>
 #include <iomanip>
@@ -85,10 +94,12 @@ int main(int argc, char* argv[])
       strin >> temp;
       if (temp > 1 && temp <= 32) {
         bits = temp;
-        cout << "Using " << bits << endl;
       }
-    }
-  }
+    } else if (arg == "-h") {
+      cout << HELP << endl;
+      return 0;
+    }//endif
+  }//endfor
 
   double wall_start = get_wall_time();
   double cpu_start = get_cpu_time();
