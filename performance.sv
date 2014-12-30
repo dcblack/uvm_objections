@@ -980,7 +980,7 @@ package Performance_pkg;
     sep1 = {"\n",sep1, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
-    `uvm_info("report_phase", $sformatf("%s%0d transactions created", sep1, formatn(My_transaction_t::g_count)), UVM_NONE)
+    `uvm_info("report_phase", $sformatf("%s%s transactions created", sep1, formatn(My_transaction_t::g_count)), UVM_NONE)
     `uvm_info("report_phase"
              , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                         , `UVM_VERSION_STRING
