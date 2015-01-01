@@ -12,6 +12,9 @@
 // 1. All modules, interfaces, packages, and classes have capitalized names.
 //    Classes furthermore have an _t suffix to indicate they represent a data type.
 // 2. Member data other than ports use m_ prefix.
+// 3. Global variables use g_ prefix.
+// 4. Typedefs and classes use _t suffix.
+// 5. First letter of class is uppercase. Separate words within with underscores.
 
 // This code has the following run-time configuration variables:
 //
@@ -19,7 +22,7 @@
 // +uvm_set_config_int=*,bfm_object,BIT specifies if driver/monitor should raise/drop objections
 // +uvm_set_config_int=*,level,NUMBER specifies depth of hierarchy to agents
 // +uvm_set_config_int=*,reports,NUMBER specifies the number of reports to send (default 0)
-// +uvm_set_config_int=*,ripple,BIT specifies for UVM 1.2 whether to propagate objections
+// +uvm_set_config_int=*,propagate,BIT specifies for UVM 1.2 whether to propagate objections
 // +uvm_set_config_int=*,shape,BIT specifies where agents split
 // +uvm_set_config_int=*,switching,NUMBER specifies context switching variations
 // +uvm_set_config_int=*,use_monitor,BIT specifies use of monitor
@@ -741,6 +744,7 @@ package Performance_pkg;
     tr_len_t tr_len         = 0;   //< default (0 = equal; else each nibble)
     longint  messages       = 0;
     longint  warnings       = 0;
+    bit      propagate      = 1; //< default old way
     string   tempstr        = "";
     int      status;
 
@@ -833,6 +837,10 @@ package Performance_pkg;
     uvm_config_db#(longint)::set(uvm_top, "*", "switching", switching);
     `uvm_info("build_phase",$sformatf("switching=%0d", switching), UVM_NONE);
 
+    // Propagate
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
+    `uvm_info("build_phase",$sformatf("propagate=%0d", propagate), UVM_NONE);
+
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
     `uvm_info("build_phase", $sformatf("Created %s", get_full_name()), UVM_NONE)
@@ -845,12 +853,12 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::run_phase(uvm_phase phase);
-    bit      mode = 1; //< default old way
+    bit propagate = 1; //< default old way
     uvm_objection objection;
     objection = phase.get_objection();
     `ifdef UVM_POST_VERSION_1_1
-    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
-    objection.set_propagate_mode(mode);
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
+    objection.set_propagate_mode(propagate);
     `endif
     objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
   endtask : My_test_t::run_phase
@@ -866,7 +874,7 @@ package Performance_pkg;
     bit      bfm_object = 1;
     bit      shape = SHAPE_WIDE;
     bit      use_monitor = 1;
-    bit      mode = 1; //< default old way
+    bit      propagate = 1; //< default old way
     longint  messages = 0;
     longint  warnings = 0;
     uvm_component seqrs[$];
@@ -891,8 +899,8 @@ package Performance_pkg;
     assert(messages >= 0);
     assert(warnings >= 0);
     `ifdef UVM_POST_VERSION_1_1
-    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "ripple", mode));
-    objection.set_propagate_mode(mode);
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
+    objection.set_propagate_mode(propagate);
     `endif
     // Create brief string describing the features used
     if (use_seq == 0)     m_features = {m_features, "; short-seq"}; else m_features = {m_features, "; long-seq"};
@@ -900,7 +908,7 @@ package Performance_pkg;
     if (shape == 0)       m_features = {m_features, "; wide"}; else m_features = {m_features, "; narrow"};
     if (use_monitor == 0) m_features = {m_features, "; no-monitor"}; else m_features = {m_features, "; monitor"};
     if (tr_len != 0)      m_features = {m_features, $sformatf("; tr%0X", tr_len)};
-    if (mode == 0)        m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
+    if (propagate == 0)   m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
     if (switching == 0)   m_features = {m_features, "; limited-switching"};
     if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
     if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
