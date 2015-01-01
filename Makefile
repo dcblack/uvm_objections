@@ -12,10 +12,10 @@ ifdef L
   RUN_OPTS+='+uvm_set_config_int=*,level,$L' 
 endif
 ifdef I
-  RUN_OPTS+='+uvm_set_config_int=*,messages,$I' 
+  RUN_OPTS+='+uvm_set_config_string=*,messages,$I' 
 endif
 ifdef W
-  RUN_OPTS+='+uvm_set_config_int=*,warnings,$W' 
+  RUN_OPTS+='+uvm_set_config_string=*,warnings,$W' 
 endif
 ifdef A
   RUN_OPTS+='+uvm_set_config_int=*,agents,$A' 
@@ -36,7 +36,7 @@ ifdef C
   RUN_OPTS+='+uvm_set_config_string=*,count,$C' 
 endif
 ifdef P
-  RUN_OPTS+='+uvm_set_config_int=*,ripple,$P' 
+  RUN_OPTS+='+uvm_set_config_int=*,propagate,$P' 
 endif
 ifdef S
   RUN_OPTS+='+uvm_set_config_int=*,shape,$S' 
