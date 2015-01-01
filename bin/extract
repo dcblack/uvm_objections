@@ -15,7 +15,7 @@ STDOUT->autoflush(1);
 STDERR->autoflush(1);
 
 if (scalar @ARGV == 0) {
-  printf "USAGE: %s/%s LOGFILE >table.csv\n",$RealBin,$RealScript;
+  printf "USAGE: %s/%s LOGFILE(s) >table.csv\n",$RealBin,$RealScript;
   exit 0;
 }
 
@@ -32,7 +32,12 @@ for my $filename (@ARGV) {
   my $base = $filename;
   $base =~ s{[.]txt$}{};
   $base =~ s{.*/}{};
-  my ($line, $starting, $finished, $objected, $elapsed, $wall);
+  my ($line, $starting, $finished, $transactions, $objected, $elapsed, $wall);
+  my $NA = '=na()';
+  $transactions = $NA;
+  $objected = $NA;
+  $elapsed = $NA;
+  $wall = $NA;
   while ($line = <$fh>) {
     chomp $line;
     $line =~ s{^# *}{};
@@ -42,15 +47,20 @@ for my $filename (@ARGV) {
       } else {
         $finished = $2;
       }#endif
+    } elsif ($line =~ m{([0-9,]+) transactions created}) {
+      $transactions = $1;
     } elsif ($line =~ m{RESULT: .* objected ([0-9,]+) times in ([0-9,]+) ms}) {
       $objected = $1;
       $elapsed = $2;
+      $elapsed =~ s{,}{}g;
+      $elapsed = sprintf("%1.3f",$elapsed/1000.0);
     }#endif
     if ($line =~ m{Finished}) {
       $objected =~ s{,}{}g;
-      $elapsed =~ s{,}{}g;
+      $transactions =~ s{,}{}g;
       $wall = $finished - $starting;
-      printf "%s, %d, %1.3f, %d\n",$base,$objected,$elapsed/1000,$wall;
+      printf "%s, %s, %s, %s, %s\n",$base,$transactions,$objected,$elapsed,$wall;
+      last;
     }#endif
   }#endwhile
   close $fh;
