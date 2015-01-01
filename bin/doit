@@ -51,7 +51,7 @@ millions of times and report the overall CPU time.
     -p #    pause # seconds between simulations
     -P 0|1  propagate objections up hierarchy
     -q      quiet
-    -R LIST  run-lengths of transactions
+    -R LIST run-lengths of transactions
     -S 0|1  shape wide|narrow
     -t TAG  part of logfile name
     -U 0|1  use short|full sequence
@@ -298,12 +298,12 @@ function Doit() {
   local first_only=0
   local OPTS
   if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
-  if [[ "$AGENTS"    = "" ]]; then AGENTS="2 4"      ; fi
+  if [[ "$AGENTS"    = "" ]]; then AGENTS="2 5"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
   if [[ "$INFOS"     = "" ]]; then INFOS="0 9000"    ; fi
-  if [[ "$WARNINGS"  = "" ]]; then WARNINGS="0 2"    ; fi
+  if [[ "$WARNINGS"  = "" ]]; then WARNINGS="0 5"    ; fi
   if [[ "$PROPAGATE" = "" ]]; then PROPAGATE="1"     ; fi
-  if [[ "$TR_LEN"    = "" ]]; then TR_LEN="0 12"     ; fi
+  if [[ "$TR_LEN"    = "" ]]; then TR_LEN="0 1241"   ; fi
   if [[ "$USEBFM"    = "" ]]; then USEBFM="1"        ; fi
   if [[ "$USEMON"    = "" ]]; then USEMON="1"        ; fi
   if [[ "$SHAPE"     = "" ]]; then SHAPE="0"         ; fi
