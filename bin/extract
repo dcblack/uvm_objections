@@ -15,7 +15,7 @@ STDOUT->autoflush(1);
 STDERR->autoflush(1);
 
 if (scalar @ARGV == 0) {
-  printf "USAGE: %s/%s LOGFILE(s) >table.csv\n",$RealBin,$RealScript;
+  printf STDERR "USAGE: %s/%s LOGFILE(s) >table.csv\n",$RealBin,$RealScript;
   exit 0;
 }
 
@@ -24,7 +24,12 @@ if (scalar @ARGV == 0) {
 #   UVM_INFO performance.sv(206) @ 21000001: uvm_test_top [test1:objections] RESULT: UVM-1.1c objected 42,000,000 times in 185,460 ms
 #   TIMESTAMP: Finished at  1404421013 Thu Jul  3 21:56:53 BST 2014
 # Sample output:
+#   Basename, Transactions, Objected, Elapsed, Wall-time
 #   i1.1c-u0r0x0L03a2, 42000000, 185.460, 194
+
+# Header
+printf "\"Created: %s\"\n", scalar localtime;
+printf "%s, %s, %s, %s, %s\n","Basename","Transactions","Objected","Elapsed","Wall-time";
 
 for my $filename (@ARGV) {
   my $fh;
