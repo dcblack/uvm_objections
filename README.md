@@ -62,6 +62,12 @@ alternately:
 
 See manpage on `screen` for more information.
 
+3. To extract logfile information into a spreadsheet CSV file
+
+``
+    % extract -t DIR/* >data.csv
+``
+
 Manifest
 --------
 
@@ -74,6 +80,32 @@ Manifest
 - `get_time.cpp` <- function to return CPU milliseconds timestamp
 - `get_time.svh` <- SystemVerilog DPI import
 - `performance.sv` <- This is the main SystemVerilog code
+
+Output files
+------------
+
+When using screenit or doit scripts, the results of a simulation are logged to a
+file with a standarized file name. The following are examples with features of
+the name spelled out:
+
+``
+  v1-1.1d-P1u0r0x1s0b1m1I0W0L03A2.txt
+  || |    | | | | | | | | | |  |
+  || |    | | | | | | | | | |  \--A#-> agents
+  || |    | | | | | | | | | \-----L#-> levels
+  || |    | | | | | | | | \-------W#-> warnings
+  || |    | | | | | | | \---------I#-> information messages
+  || |    | | | | | | \-----------m#-> use monitor if 1
+  || |    | | | | | \-------------b#-> use bfm if 1
+  || |    | | | | \---------------x#-> shape 0=>wide, 1=>narrow
+  || |    | | | \-----------------x#-> use switching if 1
+  || |    | | \-------------------r#-> burst length
+  || |    | \---------------------u#-> use full sequence
+  || |    \-----------------------P#-> propagate if 1
+  || \--------------------------UVM#-> UVM version 1.1a..1.2
+  |\-------------------------------#-> simulation run 1..N
+  \--------------------------------?-> simulation vendor: a=>ALDEC, i=>Cadence, q=>Mentor, v=>Synopsys
+``
 
 Requirements
 ------------
