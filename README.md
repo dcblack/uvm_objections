@@ -89,22 +89,22 @@ file with a standarized file name. The following are examples with features of
 the name spelled out:
 
 ```
-  v1-1.1d-P1u0r0x1s0b1m1I0W0L03A2.txt
-  || |    | | | | | | | | | |  |
-  || |    | | | | | | | | | |  \--A#-> agents
-  || |    | | | | | | | | | \-----L#-> levels
-  || |    | | | | | | | | \-------W#-> warnings
-  || |    | | | | | | | \---------I#-> information messages
-  || |    | | | | | | \-----------m#-> use monitor if 1
-  || |    | | | | | \-------------b#-> use bfm if 1
-  || |    | | | | \---------------x#-> shape 0=>wide, 1=>narrow
-  || |    | | | \-----------------x#-> use switching if 1
-  || |    | | \-------------------r#-> burst length
-  || |    | \---------------------u#-> use full sequence
-  || |    \-----------------------P#-> propagate if 1
-  || \--------------------------UVM#-> UVM version 1.1a..1.2
-  |\-------------------------------#-> simulation run 1..N
-  \--------------------------------?-> simulation vendor: a=>ALDEC, i=>Cadence, q=>Mentor, v=>Synopsys
+    v1-1.1d-P1u0r0x1s0b1m1I0W0L03A2.txt                                                                  
+    || |    | | | | | | | | | |  |                                                                       
+    || |    | | | | | | | | | |  \--A#-> agents                                                          
+    || |    | | | | | | | | | \-----L#-> levels                                                          
+    || |    | | | | | | | | \-------W#-> warnings                                                        
+    || |    | | | | | | | \---------I#-> information messages                                            
+    || |    | | | | | | \-----------m#-> use monitor if 1                                                
+    || |    | | | | | \-------------b#-> use bfm if 1                                                    
+    || |    | | | | \---------------x#-> shape 0=>wide, 1=>narrow                                        
+    || |    | | | \-----------------x#-> use switching if 1                                              
+    || |    | | \-------------------r#-> burst length                                                    
+    || |    | \---------------------u#-> use full sequence                                               
+    || |    \-----------------------P#-> propagate if 1                                                  
+    || \--------------------------UVM#-> UVM version 1.1a..1.2                                           
+    |\-------------------------------#-> simulation run 1..N                                             
+    \--------------------------------?-> simulation vendor: a=>ALDEC, i=>Cadence, q=>Mentor, v=>Synopsys 
 ```
 
 Requirements
