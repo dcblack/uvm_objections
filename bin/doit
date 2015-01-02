@@ -234,9 +234,9 @@ function Analyze_performance() {
     d="d=+UVM_VERBOSITY=UVM_DEBUG"
   fi
   local clean='clean'
-  local LOG="$VERS"
+  local LOG="$RUN-$VERS"
   if [[ ${#VERS} = 3    ]]; then
-    if [[ "$PROP" = 0 ]]; then
+    if [[ "$P" = 0 ]]; then
       LOG="${LOG}_";
     else
       LOG="${LOG}+";
@@ -244,15 +244,16 @@ function Analyze_performance() {
   fi
   LOG="$LOG-"
   local t
+  t=$(echo "P=$P;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "U=$U;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "R=$R;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "X=$X;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "S=$S;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "B=$B;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "M=$M;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
-  t=$(echo "L=$L%"|perl -pe 's/=//;s/([L])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
   t=$(echo "I=$I%"|perl -pe 's/=//;s/([I])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
   t=$(echo "W=$W%"|perl -pe 's/=//;s/([W])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "L=$L%"|perl -pe 's/=//;s/([L])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
   t=$(echo "A=$A"|perl -pe 's/=//'); LOG="$LOG$t"
   case "$VENDOR" in
     questa) LOG="q$LOG" ;;
@@ -268,10 +269,10 @@ function Analyze_performance() {
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
     echo "Analyze_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
-    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} $* $d $o 2>&1" | tee -a $LOG.txt
-    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} "$@" $d $o 2>&1        | tee -a $LOG.txt
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $* $d $o 2>&1" | tee -a $LOG.txt
+    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1        | tee -a $LOG.txt
   else
-    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std UVM=${VERS} $* $d $o 2>&1  | tee   $LOG.txt"
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $* $d $o 2>&1  | tee   $LOG.txt"
   fi
 } #end Analyze_performance
 
@@ -298,6 +299,7 @@ function Doit() {
   local SWITCHING=$SWITCHING
   local first_only=0
   local OPTS
+  # Defaults
   if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
   if [[ "$AGENTS"    = "" ]]; then AGENTS="2 5"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
