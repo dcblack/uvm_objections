@@ -28,6 +28,14 @@ if (scalar @ARGV == 0) {
 }#endif
 
 # Sample input:
+#   Analyze_performance vcs 1.1d L=3 A=2 C=21000000 P=1 U=0 R=0 X=1 OPTS= I=0 W=0 B=1 M=1 S=0
+#   [1]% env UVM_HOME=/eda/uvm/uvm-1.1d make clean vcs_std UVM=1.1d L=3 A=2 C=21000000 P=1 U=0 R=0 X=1 OPTS= I=0 W=0 B=1 M=1 S=0   2>&1
+#   ...
+# INFO: Sha1 sums -
+#   formatn.cpp 738202d8bfb472c12f3f152d1b176cf793156123
+#   get_time.cpp 9dd270dab60230edded84cd1034267970b3016e9
+#   performance.sv cd4df9ba03d7cfb6ec670c3833c8e65f3ec1874d
+#   ...
 #   TIMESTAMP: Starting at  1404420819 Thu Jul  3 21:53:39 BST 2014
 #   UVM_INFO performance.sv(761) @ 0: uvm_test_top [build_phase] levels=3
 #   UVM_INFO performance.sv(765) @ 0: uvm_test_top [build_phase] agents=4
@@ -60,11 +68,16 @@ if (scalar @ARGV == 0) {
 
 # Header
 if (exists $OPT{-t}) {
-  printf "%s\n",join(", ",qw(Filename Launched Vendor UVM Propagate Burst Switching Use_monitor Shape Count Bfm_object Use_seq Levels Agents Infos Warnings Transactions Objected Elapsed Wall-time));
+  printf "%s\n",join(", ",qw(Run Filename Launched Vendor UVM Propagate Burst Switching Use_monitor Shape Count Bfm_object Use_seq Levels Agents Infos Warnings Transactions Objected Elapsed Wall-time));
 } else {
   printf "%s\n",join(", ",qw(Filename Transactions Objected Elapsed Wall-time));
 }#endif
 
+my %sha1;
+my $NA = '#N/A';
+my $UN = '"Unknown"';
+my @mo = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+my %mo; for my $i (0..11) { $mo{$mo[$i]} = $i; }
 for my $filename (@ARGV) {
   my $fh;
   open $fh,'<',$filename;
@@ -72,12 +85,8 @@ for my $filename (@ARGV) {
   #$basename =~ s{[.]txt$}{};
   $basename =~ s{.*/}{};
   $basename = '"'.$basename.'"';
-  my $NA = '#N/A';
-  my $UN = '"Unknown"';
-  my @mo = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
-  my %mo; for my $i (0..11) { $mo{$mo[$i]} = $i; }
   my ($line, $launch, $starting, $finished, $transactions, $objected, $elapsed, $wall);
-  my ($vendor, $version, $iterations, $propagate) = ($UN, $UN, $UN, $UN);
+  my ($run, $vendor, $version, $iterations, $propagate) = (0, $UN, $UN, $UN, $UN);
   my ($tr_len, $switching, $use_monitor, $shape, $count, $bfm_object, $use_seq, $levels, $agents, $messages, $warnings) ;
   $transactions = $NA;
   $objected = $NA;
@@ -88,6 +97,15 @@ for my $filename (@ARGV) {
     $line =~ s{^# *}{};
     if ($line =~ m{Analyze_performance (\w+) (\S+) }) {
       ($vendor,$version) = ($1,$2);
+    } elsif ($line =~ m{\[(\d+)\]% env UVM_HOME}) {
+      $run = $1;
+    } elsif ($line =~ m{^  (\w+\.\w{2,3}) (\w{40,40})$}) {
+      my ($src,$sha1) = ($1,$2);
+      if (exists $sha1{$src}) {
+        warn "Run $run Sha1sum mismatch $src\n" unless $sha1 eq $sha1{$src};
+      } else {
+        $sha1{$src} = $sha1;
+      }#endif
     } elsif ($line =~ m{TIMESTAMP: (\w+) at +(\d+) }) {
       if ($1 eq 'Starting') {
         $starting = $2;
@@ -115,7 +133,7 @@ for my $filename (@ARGV) {
       $transactions =~ s{,}{}g;
       $wall = $finished - $starting;
       if (exists $OPT{-t}) {
-        printf "%s\n",join(", ",($basename,$launch,$vendor,$version,$propagate,$tr_len,$switching,$use_monitor,$shape,$count,$bfm_object,$use_seq,$levels,$agents,$messages,$warnings,$transactions,$objected,$elapsed,$wall));
+        printf "%s\n",join(", ",($run, $basename,$launch,$vendor,$version,$propagate,$tr_len,$switching,$use_monitor,$shape,$count,$bfm_object,$use_seq,$levels,$agents,$messages,$warnings,$transactions,$objected,$elapsed,$wall));
       } else {
         printf "%s\n",join(", ",($basename,$transactions,$objected,$elapsed,$wall));
       }#endif
