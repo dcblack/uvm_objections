@@ -2,6 +2,8 @@
 # -*- make -*- vim:syntax=make:fdm=marker:fmr=<<<,>>>:tw=80:sw=2:et
 # Find path to THIS file
 MAKEFILE_RULES := $(realpath $(lastword $(MAKEFILE_LIST)))
+# Allow customization (e.g. EMAIL)
+-include ${HOME}/.makefile
 #
 $(info INFO: $$ Makefile,v 1.1 2014/05/22 04:26:56 dcblack Exp $$)
 ################################################################################
