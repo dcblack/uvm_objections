@@ -269,10 +269,10 @@ function Analyze_performance() {
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
     echo "Analyze_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
-    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $* $d $o 2>&1" | tee -a $LOG.txt
-    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1        | tee -a $LOG.txt
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
+                    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
   else
-    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $* $d $o 2>&1  | tee   $LOG.txt"
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1  | tee   $LOG.txt"
   fi
 } #end Analyze_performance
 
