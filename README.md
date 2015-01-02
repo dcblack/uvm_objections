@@ -11,62 +11,62 @@ How to
 
 To run (default):
 
-``
+```
     % make it
-``
+```
 
 For more sophisticated runs,
 
 0. Add ./bin to search path
 
-``
+```
     % source setup.profile
-``
+```
 
 1. Read documentation:
 
-``
+```
     % perldoc bin/doit
-``
+```
 
 2. Use custom make command:
 
-``
+```
     % make it ARGS="-C 1e9 -L 4 -V vcs 1.2r"
-``
+```
 
 Or read Makefile documentation:
-``
+```
     % make
-``
+```
 
 HINT: Use `screen` to run everything in background:
 
 1. To start a job:
 
-``
+```
     % screen -d -m -L make it ARGS="..."
-``
+```
 
 alternately:
 
-``
+```
     % ./screenit ...
-``
+```
 
 2. To view status:
 
-``
+```
     % screen -ls
-``
+```
 
 See manpage on `screen` for more information.
 
 3. To extract logfile information into a spreadsheet CSV file
 
-``
+```
     % extract -t DIR/* >data.csv
-``
+```
 
 Manifest
 --------
@@ -88,7 +88,7 @@ When using screenit or doit scripts, the results of a simulation are logged to a
 file with a standarized file name. The following are examples with features of
 the name spelled out:
 
-``
+```
   v1-1.1d-P1u0r0x1s0b1m1I0W0L03A2.txt
   || |    | | | | | | | | | |  |
   || |    | | | | | | | | | |  \--A#-> agents
@@ -105,7 +105,7 @@ the name spelled out:
   || \--------------------------UVM#-> UVM version 1.1a..1.2
   |\-------------------------------#-> simulation run 1..N
   \--------------------------------?-> simulation vendor: a=>ALDEC, i=>Cadence, q=>Mentor, v=>Synopsys
-``
+```
 
 Requirements
 ------------
