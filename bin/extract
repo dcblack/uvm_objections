@@ -77,7 +77,7 @@ my %sha1;
 my $NA = '#N/A';
 my $UN = '"Unknown"';
 my @mo = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
-my %mo; for my $i (0..11) { $mo{$mo[$i]} = $i; }
+my %mo; for my $i (0..11) { $mo{$mo[$i]} = $i+1; }
 for my $filename (@ARGV) {
   my $fh;
   open $fh,'<',$filename;
@@ -114,7 +114,7 @@ for my $filename (@ARGV) {
       }#endif
       $line =~ m{TIMESTAMP: +\w+ +at +\d+ +\w+ +(\w+) +(\d+) +(\d+):(\d+):(\d+) +(\w+) +(\d+)};
       my ($mo,$da,$yr,$hr,$mn,$tz) = ($mo{$1},$2,$7,$3,$4,$6);
-      $launch = "$mo/$da/$yr $hr:$mn";
+      $launch = sprintf("%02d/%02d/%2d %02d:%02d",$mo,$da,$yr,$hr,$mn);
     } elsif ($line =~ m{uvm_test_top .main_phase. Running (\d+) x ([0-9,]+) iterations}) {
       $iterations = "$1 x $2";
       $propagate = ($line =~ m{propagate});
