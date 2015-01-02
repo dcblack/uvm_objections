@@ -1,4 +1,6 @@
 #!/usr/bin/perl -pi
+#
+# Adjust SystemVerilog for a bug found in 2003-06 version of Synopsys VCS
 
 BEGIN { $c=0; push @ARGV,"performance.sv" unless @ARGV; }
 
