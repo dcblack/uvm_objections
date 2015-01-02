@@ -263,6 +263,7 @@ function Analyze_performance() {
   esac
   LOG="$(echo $LOG|tr BMSXUR bmsxur)" ; # force to lowercase
   LOG="$LOG$TAG"
+  export LOGFILE="$LOG.txt"
   if [[ $not_really = 0 ]]; then
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
