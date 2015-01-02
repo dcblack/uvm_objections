@@ -2,7 +2,9 @@
 
 EXNAME = perf
 
-SRCS = formatn.cpp get_time.cpp performance.sv
+SRCS = get_env.cpp formatn.cpp get_time.cpp notify.sv performance.sv
+
+export JOB = ${MAKECMDGOALS} ${UVM_VER} ${LOGFILE}
 
 INCDIRS = +incdir+.
 
