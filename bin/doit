@@ -1,0 +1,450 @@
+#!/bin/bash
+#
+#$Info: ./doit - Script to run various performance runs. $
+#
+# ./doit -h will display the documentation
+
+################################################################################
+#
+#  #    # ##### #     #####
+#  #    # #     #     #    #
+#  #    # #     #     #    #
+#  ###### ##### #     #####
+#  #    # #     #     #
+#  #    # #     #     #
+#  #    # ##### ##### #
+#
+################################################################################
+# DOCUMENTATION
+#-------------------------------------------------------------------------------
+function Help() {
+  perldoc $0
+  cat >/dev/null <<.
+=pod
+
+=head1 NAME
+
+B<doit> - Script to run various performance runs
+
+=head1 SYNOPSIS
+
+B<./doit> [OPTIONS] [VERSIONS]
+
+=head1 DESCRIPTION
+
+This script uses a specified simulator (default Mentor questa) to run
+UVM objections performance testing. Default is to raise and lower objections
+millions of times and report the overall CPU time.
+
+=head1 QUICK OPTIONS
+
+    -1      single test
+    -A #    agents
+    -B 0|1  bfm (driver/monitor) objections
+    -C #    count
+    -h      help
+    -I #    infos
+    -L #    levels of hierarchy in agent
+    -M 0|1  monitor in/active
+    -n      not really
+    -o      objection tracing
+    -p #    pause # seconds between simulations
+    -P 0|1  propagate objections up hierarchy
+    -q      quiet
+    -R LIST run-lengths of transactions
+    -S 0|1  shape wide|narrow
+    -t TAG  part of logfile name
+    -U 0|1  use short|full sequence
+    -V LIST vendor list
+    -v      verbose
+    -W #    warnings
+    -X #    context switching choice
+
+=head1 OPTIONS
+
+=over
+
+=item B<-1>
+
+Run a single test (pipe cleaner).
+
+=item B<-A> #
+
+Number of agents to instantiate
+
+=item B<-B> 0 | 1
+
+Specify whether to use BFM objections.
+
+=item B<-C> #
+
+Number of times to repeat inner loop
+
+=item B<-h>
+
+Display this help.
+
+=item B<-I> #
+
+Number of info messages to display
+
+=item B<-L> #
+
+Number of levels of hierarchy above drivers
+
+=item B<-M> 0 | 1
+
+Specify whether to use the monitor.
+
+=item B<-n>
+
+Not really
+
+=item B<-o>
+
+Turn-on objection tracing
+
+=item B<-p> #
+
+Seconds to delay between simulations (minimum 5)
+
+=item B<-P> 0 | 1
+
+Propagate objections or not (affects 1.2 and above only)
+
+=item B<-q>
+
+Quiet mode to suppress unnecessary output.
+
+=item B<-R> I<TRLEN>
+
+Specify transaction length to use. This has
+a special format using one hex digit for each
+driver. Example: 3_2_1 means a length of 3ps
+for driver 2, 2ps for driver 1, and 1ps for driver 0.
+Unspecified drivers get a value of 1ps.
+
+=item B<-S> I<SHAPE>
+
+Specify the shape to use: {SHAPE_WIDE=0, SHAPE_NARROW=1}
+
+=item B<-t> I<TAG>
+
+Specify a I<TAG> to include in log file name.
+
+=item B<-U> 0 | 1
+
+Specify whether to use a full sequence (1) or a short 1ps sequence.
+
+=item B<-V> cadence | mentor | synopsys
+
+Specify vendor (or simulator) to use.
+
+=item B<-v>
+
+Verbose mode to expand explanatory output.
+
+=item B<-W> #
+
+Number of warning messages to display
+
+=item B<-X> NUMBER
+
+Specify context switching choice.
+
+=back
+
+=head1 VERSIONS
+
+Supported UVM versions are:
+
+=over
+
+=item 1.1b
+
+=item 1.1c
+
+=item 1.1d
+
+=item 1.2
+
+=item 1.2r
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (C) 2014 Doulos Inc. All rights reserved.
+
+=head1 AUTHOR
+
+David C Black <david.black@doulos.com>
+
+=cut
+
+.
+exit 0
+}
+
+################################################################################
+#
+#   ####   ####  ####   #####
+#  #    # #    # #   #  #    
+#  #      #    # #    # #    
+#  #      #    # #    # #####
+#  #      #    # #    # #    
+#  #    # #    # #   #  #    
+#   ####   ####  ####   #####
+#
+################################################################################
+# CODE
+#-------------------------------------------------------------------------------
+export TAG
+not_really=0
+export obj_trace
+
+function Uniq() {
+  perl -le 'for$r(@ARGV){next if exists $u{$r};push@r,$r;$u{$r}=1;}print"@r";' $@
+}
+
+function Split() {
+  perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
+}
+
+function Analyze_performance() {
+  local RUN=${1} VENDOR=${2} VERS=${3}
+  shift; shift; shift
+  local var val
+  for arg in $@; do
+    if [[ $arg =~ [A-Za-z]=* ]]; then
+      var=$(echo "$arg"|perl -pe 's/=.*//')
+      val=$(echo "$arg"|perl -pe 's/.*=//')
+      local $var
+      eval "$var=$val"
+    fi
+  done
+  o=
+  if [[ "$obj_trace" == 1 ]]; then
+    o="o=+UVM_OBJECTION_TRACE"
+  fi
+  d=
+  if [[ "$verbose" != "" ]]; then
+    d="d=+UVM_VERBOSITY=UVM_$(echo $verbose|tr a-z A-Z)"
+  elif [[ "$debug" == 1 ]]; then
+    d="d=+UVM_VERBOSITY=UVM_DEBUG"
+  fi
+  local clean='clean'
+  local LOG="$RUN-$VERS"
+  if [[ ${#VERS} = 3    ]]; then
+    if [[ "$P" = 0 ]]; then
+      LOG="${LOG}_";
+    else
+      LOG="${LOG}+";
+    fi
+  fi
+  LOG="$LOG-"
+  local t
+  t=$(echo "P=$P;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "U=$U;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "R=$R;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "X=$X;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "S=$S;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "B=$B;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "M=$M;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "I=$I%"|perl -pe 's/=//;s/([I])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "W=$W%"|perl -pe 's/=//;s/([W])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "L=$L%"|perl -pe 's/=//;s/([L])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
+  t=$(echo "A=$A"|perl -pe 's/=//'); LOG="$LOG$t"
+  case "$VENDOR" in
+    questa) LOG="q$LOG" ;;
+    ius   ) LOG="i$LOG" ;;
+    vcs   ) LOG="v$LOG" ;;
+    aldec ) LOG="a$LOG" ;;
+    *     ) LOG="_$LOG" ;;
+  esac
+  LOG="$(echo $LOG|tr BMSXUR bmsxur)" ; # force to lowercase
+  LOG="$LOG$TAG"
+  export LOGFILE="$LOG.txt"
+  if [[ $not_really = 0 ]]; then
+    bin/header "$LOG"
+    echo "------------------------------------------------------------------------------"
+    echo "Analyze_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
+                    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
+  else
+    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1  | tee   $LOG.txt"
+  fi
+} #end Analyze_performance
+
+################################################################################
+function Doit() {
+  #ocal ALL_VERSIONS="1.1b 1.1c 1.1d 1.2r 1.2"
+  local ALL_VERSIONS="1.1d 1.2r 1.2"
+  local VERSIONS=""
+  local verbose=""
+  local quiet=0
+  local pause=10
+  local INFOS=$INFOS
+  local WARNINGS=$WARNINGS
+  local LEVELS=$LEVELS
+  local AGENTS=$AGENTS
+  local COUNTS=$COUNTS
+  local PROPAGATE=$PROPAGATE
+  local TR_LEN=$TR_LEN
+  local USEBFM=$USEBFM
+  local USEMON=$USEMON
+  local SHAPE=$SHAPE
+  local USESEQ=$USESEQ
+  local VENDOR=$VENDOR
+  local SWITCHING=$SWITCHING
+  local first_only=0
+  local OPTS
+  # Defaults
+  if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
+  if [[ "$AGENTS"    = "" ]]; then AGENTS="2 5"      ; fi
+  if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
+  if [[ "$INFOS"     = "" ]]; then INFOS="0 9000"    ; fi
+  if [[ "$WARNINGS"  = "" ]]; then WARNINGS="0 5"    ; fi
+  if [[ "$PROPAGATE" = "" ]]; then PROPAGATE="1"     ; fi
+  if [[ "$TR_LEN"    = "" ]]; then TR_LEN="0 1241"   ; fi
+  if [[ "$USEBFM"    = "" ]]; then USEBFM="1"        ; fi
+  if [[ "$USEMON"    = "" ]]; then USEMON="1"        ; fi
+  if [[ "$SHAPE"     = "" ]]; then SHAPE="0"         ; fi
+  if [[ "$USESEQ"    = "" ]]; then USESEQ="0 1"      ; fi
+  if [[ "$VENDOR"    = "" ]]; then VENDOR="all"      ; fi
+  if [[ "$SWITCHING" = "" ]]; then SWITCHING="1"     ; fi
+
+  while  [[ $# -gt 0 && "${1}" =  [+-]* ]];do
+    if   [[ "${1}" = "-1"     ]]; then first_only=1;
+    elif [[ "${1}" = "-q"     ]]; then quiet=1; verbose="NONE";
+    elif [[ "${1}" = "-h"     ]]; then Help;
+    elif [[ "${1}" = "-help"  ]]; then Help;
+    elif [[ "${1}" = "--help" ]]; then Help;
+    elif [[ "${1}" = "-d"     ]]; then debug=1;
+    elif [[ "${1}" = "-debug" ]]; then debug=1;
+    elif [[ "${1}" = "-n"     ]]; then not_really=1;
+    elif [[ "${1}" = "-o"     ]]; then obj_trace=1;
+    elif [[ "${1}" = "-trace" ]]; then obj_trace=1;
+    elif [[ "${1}" = "-p"     ]]; then pause="${2}";     shift;
+    elif [[ "${1}" = "-t"     ]]; then TAG="${2}";       shift;
+    elif [[ "${1}" = "-C"     ]]; then COUNTS="${2}";    shift;
+    elif [[ "${1}" = "-A"     ]]; then AGENTS="${2}";    shift;
+    elif [[ "${1}" = "-L"     ]]; then LEVELS="${2}";    shift;
+    elif [[ "${1}" = "-I"     ]]; then INFOS="${2}";     shift;
+    elif [[ "${1}" = "-P"     ]]; then PROPAGATE="${2}"; shift;
+    elif [[ "${1}" = "-V"     ]]; then VENDOR="${2}";    shift;
+    elif [[ "${1}" = "-R"     ]]; then TR_LEN="${2}";    shift;
+    elif [[ "${1}" = "-B"     ]]; then USEBFM="${2}";    shift;
+    elif [[ "${1}" = "-M"     ]]; then USEMON="${2}";    shift;
+    elif [[ "${1}" = "-U"     ]]; then USESEQ="${2}";    shift;
+    elif [[ "${1}" = "-S"     ]]; then SHAPE="${2}";     shift;
+    elif [[ "${1}" = "-W"     ]]; then WARNINGS="${2}";  shift;
+    elif [[ "${1}" = "-X"     ]]; then SWITCHING="${2}"; shift;
+    elif [[ "${1}" = "-v"     ]]; then verbose="${2}";   shift; quiet=0;
+    else                               OPTS="$OPTS ${1}"
+    fi
+    shift
+  done
+  VENDORS=
+  while [[ $# -gt 0 ]]; do # Add user specified targets
+    case "$1" in
+      all|aldec|cadence|mentor|synopsys|modelsim|questa|ius|vcs|riviera) VENDORS="${VENDORS} $1" ;;
+      +*) OPTS="$OPTS $1" ;;
+       *) VERSIONS="$VERSIONS $1" ;;
+    esac
+    shift
+  done
+  if [[ "$VENDORS" != "" ]]; then
+    if [[ "$VENDOR" = "all" ]]; then
+      VENDOR="$VENDORS";
+    else
+      VENDOR="$VENDOR $VENDORS";
+    fi
+  fi
+  if [[ "$VERSIONS" = "" ]]; then # Use default list
+    VERSIONS="$ALL_VERSIONS"
+  fi
+  VERSIONS=$(Uniq $VERSIONS)
+  VENDORS=
+  for V in $(Split $VENDOR); do
+    case "$V" in # Legal simulator target prefixes
+      aldec|riviera          ) VENDORS="$VENDORS aldec"           ;;
+      cadence|ius|incisive   ) VENDORS="$VENDORS ius"             ;;
+      mentor|questa|modelsim ) VENDORS="$VENDORS questa"          ;;
+      synopsys|vcs           ) VENDORS="$VENDORS vcs"             ;;
+                          all) VENDORS="$VENDORS questa ius vcs"  ;;
+      *) echo "FATAL: Invalid vendor/simulator '$V' specified"; exit 1 ;;
+    esac
+  done
+  VENDORS=$(Uniq $VENDORS)
+  if [[ $pause -gt 0 && $pause -lt 10 ]]; then pause=10; fi # Minimum
+
+  let run=1
+  let first=1
+  for V in $(Split $VENDORS); do
+    for L in $(Split $LEVELS); do
+      for I in $(Split $INFOS); do
+        for W in $(Split $WARNINGS); do
+          for A in $(Split $AGENTS); do
+            for U in $(Split $USESEQ); do
+            for B in $(Split $USEMON); do
+            for M in $(Split $USEBFM); do
+            for S in $(Split $SHAPE); do
+              for R in $(Split $TR_LEN); do
+                for X in $(Split $SWITCHING); do
+                  for UVM in $(Split $VERSIONS); do
+                    # Pause between runs to allow clean interrupt
+                    if [[ $not_really = 0 && $first = 0 && $pause != 0 ]]; then
+                      echo -n "Pausing $pause"
+                      let i=$pause
+                      while [[ $i -gt 0 ]]; do
+                        echo -n "."
+                        sleep 1;
+                        let i--
+                      done
+                      echo ""
+                    fi
+                    let first=0
+
+                    case "$UVM" in
+                      1.1b) uv=1.1b; pm=$PROPAGATE  ;;
+                      1.1c) uv=1.1c; pm=$PROPAGATE  ;;
+                      1.1d) uv=1.1d; pm=$PROPAGATE  ;;
+                      1.2r) uv=1.2 ; pm=0           ;;
+                      1.2 ) uv=1.2 ; pm=$PROPAGATE  ;;
+                      1.* ) uv=$UVM; pm=$PROPAGATE  ;;
+                         *) echo "ERROR: Weird UVM version '$UVM'" ; exit 1 ;;
+                    esac
+                    Analyze_performance $run $V $uv L=$L A=$A C=$COUNTS P=$pm U=$U R=$R X=$X OPTS="$OPTS" I=$I W=$W B=$B M=$M S=$S
+                    let run++
+                    if [[ $not_really = 0 ]]; then
+                      echo ""
+                    fi
+                    if [[ $first_only = 1 ]]; then
+                      break 42
+                    fi
+                  done
+                done
+              done
+            done
+            done
+            done
+            done
+          done
+        done
+      done
+    done
+  done
+
+  echo "------------------------------------------------------------------------------"
+  echo "INFO: Don't forget to clean-up simulator temporaries..."
+  echo "------------------------------------------------------------------------------"
+  echo ""
+} #end Doit
+
+################################################################################
+if [[ $# != 0 ]]; then
+  Doit "$@"
+else
+  Doit
+fi

@@ -2,15 +2,34 @@
 
 EXNAME = perf
 
-SRCS = formatn.cpp get_time.cpp performance.sv
+SRCS = get_env.cpp formatn.cpp get_time.cpp notify.sv performance.sv
+
+LOGFILE?=$(firstword $(shell /bin/ls -1t [aiqv]1.[0-9]*.txt))
+export LOGFILE
+JOB = ${LOGFILE}
+export JOB
 
 INCDIRS = +incdir+.
 
+RUN_OPTS+=$d 
+RUN_OPTS+=$o 
 ifdef L
   RUN_OPTS+='+uvm_set_config_int=*,level,$L' 
 endif
+ifdef I
+  RUN_OPTS+='+uvm_set_config_string=*,messages,$I' 
+endif
+ifdef W
+  RUN_OPTS+='+uvm_set_config_string=*,warnings,$W' 
+endif
 ifdef A
-  RUN_OPTS+='+uvm_set_config_int=*,drivers,$A' 
+  RUN_OPTS+='+uvm_set_config_int=*,agents,$A' 
+endif
+ifdef B
+  RUN_OPTS+='+uvm_set_config_int=*,bfm_object,$B' 
+endif
+ifdef M
+  RUN_OPTS+='+uvm_set_config_int=*,use_monitor,$M' 
 endif
 ifdef U
   RUN_OPTS+='+uvm_set_config_int=*,use_seq,$U' 
@@ -22,13 +41,37 @@ ifdef C
   RUN_OPTS+='+uvm_set_config_string=*,count,$C' 
 endif
 ifdef P
-  RUN_OPTS+='+uvm_set_config_int=*,ripple,$P' 
+  RUN_OPTS+='+uvm_set_config_int=*,propagate,$P' 
+endif
+ifdef S
+  RUN_OPTS+='+uvm_set_config_int=*,shape,$S' 
 endif
 ifdef X
   RUN_OPTS+='+uvm_set_config_string=*,switching,$X' 
 endif
 ifdef OPTS
   RUN_OPTS+=${OPTS}
+endif
+ifdef PERIOD
+  VERILOG_DEFINES+=+define+PERIOD=${PERIOD} 
+endif
+ifdef BITS
+  VERILOG_DEFINES+=+define+BITS=${BITS} 
+endif
+ifdef BUSY
+  VERILOG_DEFINES+=+define+BUSY=${BUSY} 
+endif
+ifdef USE_RTL
+  VERILOG_DEFINES+=+define+USE_RTL=${USE_RTL} 
+endif
+ifdef USE_MONITOR
+  VERILOG_DEFINES+=+define+USE_MONITOR=${USE_MONITOR} 
+endif
+ifdef USE_CLOCKING
+  VERILOG_DEFINES+=+define+USE_CLOCKING=${USE_CLOCKING} 
+endif
+ifdef RTL_NOISE
+  VERILOG_DEFINES+=+define+RTL_NOISE=${RTL_NOISE} 
 endif
 
 EXTRA_QUESTA_OPTS := 
@@ -170,15 +213,33 @@ The following options are available:
 
 Sets -L option of ./doit script with LIST, which is a space or comma separated list of integer levels.
 
+=item B<I="LIST">
+
+Sets -I option of ./doit script with LIST, which is a space or comma separated list of info counts.
+
+=item B<W="LIST">
+
+Sets -W option of ./doit script with LIST, which is a space or comma separated list of warning counts.
+
 =item B<A="LIST">
 
 Sets -A option of ./doit script with LIST, which is a space or comma separated
 list of the number of agents to instantiate.
 
+=item B<B="LIST">
+
+Sets -B option of ./doit script with LIST, which is a space or comma separated
+list of 0/1 specifying whether to use BFM objections.
+
+=item B<M="LIST">
+
+Sets -M option of ./doit script with LIST, which is a space or comma separated
+list of 0/1 specifying whether to use the monitor.
+
 =item B<U="LIST">
 
 Sets -U option of ./doit script with LIST, which is a space or comma separated
-list of 0/1 specifing whether to use a full sequence (1) or a short 1ps
+list of 0/1 specifying whether to use a full sequence (1) or a short 1ps
 sequence.
 
 =item B<R="LIST">
@@ -197,6 +258,11 @@ repeat inner loop.
 
 Sets -P option of ./doit script with BOOL, which specifies whether to propagate
 objections (1) or not (0) -- affects 1.2 and above only.
+
+=item B<S=BOOLEAN>
+
+Sets -S option of ./doit script with BOOL, which specifies the shape of the agent/uvc
+arrays {SHAPE_WIDE=0, SHAPE_NARROW=1}.
 
 =item B<X="LIST">
 

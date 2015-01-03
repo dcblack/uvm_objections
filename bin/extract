@@ -14,44 +14,134 @@ use FileHandle;
 STDOUT->autoflush(1);
 STDERR->autoflush(1);
 
+our %OPT;
+while ($ARGV[0] =~ m{^-}) {
+  my $arg = shift @ARGV;
+  if ($arg eq '-t') {
+    $OPT{-t} = 1;
+  }#endif
+}#endwhile
+
 if (scalar @ARGV == 0) {
-  printf "USAGE: %s/%s LOGFILE >table.csv\n",$RealBin,$RealScript;
+  printf STDERR "USAGE: %s/%s LOGFILE(s) >table.csv\n",$RealBin,$RealScript;
   exit 0;
-}
+}#endif
 
 # Sample input:
+#   Analyze_performance vcs 1.1d L=3 A=2 C=21000000 P=1 U=0 R=0 X=1 OPTS= I=0 W=0 B=1 M=1 S=0
+#   [1]% env UVM_HOME=/eda/uvm/uvm-1.1d make clean vcs_std UVM=1.1d L=3 A=2 C=21000000 P=1 U=0 R=0 X=1 OPTS= I=0 W=0 B=1 M=1 S=0   2>&1
+#   ...
+# INFO: Sha1 sums -
+#   formatn.cpp 738202d8bfb472c12f3f152d1b176cf793156123
+#   get_time.cpp 9dd270dab60230edded84cd1034267970b3016e9
+#   performance.sv cd4df9ba03d7cfb6ec670c3833c8e65f3ec1874d
+#   ...
 #   TIMESTAMP: Starting at  1404420819 Thu Jul  3 21:53:39 BST 2014
+#   UVM_INFO performance.sv(761) @ 0: uvm_test_top [build_phase] levels=3
+#   UVM_INFO performance.sv(765) @ 0: uvm_test_top [build_phase] agents=4
+#   UVM_INFO performance.sv(769) @ 0: uvm_test_top [build_phase] shape=0
+#   UVM_INFO performance.sv(781) @ 0: uvm_test_top [build_phase] count=21000000
+#   UVM_INFO performance.sv(793) @ 0: uvm_test_top [build_phase] messages=0
+#   UVM_INFO performance.sv(804) @ 0: uvm_test_top [build_phase] warnings=0
+#   UVM_INFO performance.sv(808) @ 0: uvm_test_top [build_phase] use_monitor=1
+#   UVM_INFO performance.sv(812) @ 0: uvm_test_top [build_phase] bfm_object=1
+#   UVM_INFO performance.sv(816) @ 0: uvm_test_top [build_phase] use_seq=0
+#   UVM_INFO performance.sv(825) @ 0: uvm_test_top [build_phase] tr_len=0
+#   UVM_INFO performance.sv(834) @ 0: uvm_test_top [build_phase] switching=1
+#   ...
+#   ##########################################################################################################################
+#   RUNNING
+#   ========================================================================================================================
+#   UVM_INFO performance.sv(912) @ 2: uvm_test_top [main_phase] Running 2 x 21,000,000 iterations; short-seq; bfm-objections; wide; monitor; propagate; No runtime-info; No warnings
+#   ...
+#   UVM_INFO performance.sv(955) @ 335999998000: uvm_test_top [main_phase] All forked processes completed
+#   UVM_INFO /eda/uvm/uvm-1.1d/src/base/uvm_objection.svh(1121) @ 336008014000: reporter [TEST_DONE] 'run' phase is ready to proceed to the 'extract' phase
+#   UVM_INFO performance.sv(983) @ 336016038000: uvm_test_top [report_phase] 
+#   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#   84,000,004 transactions created
 #   UVM_INFO performance.sv(206) @ 21000001: uvm_test_top [test1:objections] RESULT: UVM-1.1c objected 42,000,000 times in 185,460 ms
+#   ...
 #   TIMESTAMP: Finished at  1404421013 Thu Jul  3 21:56:53 BST 2014
 # Sample output:
-#   i1.1c-u0r0x0L03a2, 42000000, 185.460, 194
+#   Basename, Transactions, Objected, Elapsed, Wall-time
+#   v1.1d-u0r12x1s0b1m1L03I9000W0A2, 42000002, 126000008, 1020.673, 5336
 
+# Header
+if (exists $OPT{-t}) {
+  printf "%s\n",join(", ",qw(Run Filename Launched Vendor UVM Propagate Burst Switching Use_monitor Shape Count Bfm_object Use_seq Levels Agents Infos Warnings Transactions Objected Elapsed Wall-time));
+} else {
+  printf "%s\n",join(", ",qw(Filename Transactions Objected Elapsed Wall-time));
+}#endif
+
+my %sha1;
+my $NA = '#N/A';
+my $UN = '"Unknown"';
+my @mo = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+my %mo; for my $i (0..11) { $mo{$mo[$i]} = $i+1; }
 for my $filename (@ARGV) {
   my $fh;
   open $fh,'<',$filename;
-  my $base = $filename;
-  $base =~ s{[.]txt$}{};
-  $base =~ s{.*/}{};
-  my ($line, $starting, $finished, $objected, $elapsed, $wall);
+  my $basename = $filename;
+  #$basename =~ s{[.]txt$}{};
+  $basename =~ s{.*/}{};
+  $basename = '"'.$basename.'"';
+  my ($line, $launch, $starting, $finished, $transactions, $objected, $elapsed, $wall);
+  my ($run, $vendor, $version, $iterations, $propagate) = (0, $UN, $UN, $UN, $UN);
+  my ($tr_len, $switching, $use_monitor, $shape, $count, $bfm_object, $use_seq, $levels, $agents, $messages, $warnings) ;
+  $transactions = $NA;
+  $objected = $NA;
+  $elapsed = $NA;
+  $wall = $NA;
   while ($line = <$fh>) {
     chomp $line;
     $line =~ s{^# *}{};
-    if ($line =~ m{TIMESTAMP: (\w+) at *(\d+)}) {
+    if ($line =~ m{Analyze_performance (\w+) (\S+) }) {
+      ($vendor,$version) = ($1,$2);
+    } elsif ($line =~ m{\[(\d+)\]% env UVM_HOME}) {
+      $run = $1;
+    } elsif ($line =~ m{^  (\w+\.\w{2,3}) (\w{40,40})$}) {
+      my ($src,$sha1) = ($1,$2);
+      if (exists $sha1{$src}) {
+        warn "Run $run Sha1sum mismatch $src\n" unless $sha1 eq $sha1{$src};
+      } else {
+        $sha1{$src} = $sha1;
+      }#endif
+    } elsif ($line =~ m{TIMESTAMP: (\w+) at +(\d+) }) {
       if ($1 eq 'Starting') {
         $starting = $2;
       } else {
         $finished = $2;
       }#endif
+      $line =~ m{TIMESTAMP: +\w+ +at +\d+ +\w+ +(\w+) +(\d+) +(\d+):(\d+):(\d+) +(\w+) +(\d+)};
+      my ($mo,$da,$yr,$hr,$mn,$tz) = ($mo{$1},$2,$7,$3,$4,$6);
+      $launch = sprintf("%02d/%02d/%2d %02d:%02d",$mo,$da,$yr,$hr,$mn);
+    } elsif ($line =~ m{uvm_test_top .main_phase. Running (\d+) x ([0-9,]+) iterations}) {
+      $iterations = "$1 x $2";
+      $propagate = ($line =~ m{propagate});
+    } elsif ($line =~ m{uvm_test_top .build_phase. (\w+)=(\d+)}) {
+      eval "\$$1=$2;";
+    } elsif ($line =~ m{([0-9,]+) transactions created}) {
+      $transactions = $1;
     } elsif ($line =~ m{RESULT: .* objected ([0-9,]+) times in ([0-9,]+) ms}) {
       $objected = $1;
       $elapsed = $2;
+      $elapsed =~ s{,}{}g;
+      $elapsed = sprintf("%1.3f",$elapsed/1000.0);
     }#endif
     if ($line =~ m{Finished}) {
       $objected =~ s{,}{}g;
-      $elapsed =~ s{,}{}g;
+      $transactions =~ s{,}{}g;
       $wall = $finished - $starting;
-      printf "%s, %d, %1.3f, %d\n",$base,$objected,$elapsed/1000,$wall;
+      if (exists $OPT{-t}) {
+        printf "%s\n",join(", ",($run, $basename,$launch,$vendor,$version,$propagate,$tr_len,$switching,$use_monitor,$shape,$count,$bfm_object,$use_seq,$levels,$agents,$messages,$warnings,$transactions,$objected,$elapsed,$wall));
+      } else {
+        printf "%s\n",join(", ",($basename,$transactions,$objected,$elapsed,$wall));
+      }#endif
+      last;
     }#endif
   }#endwhile
   close $fh;
 }#endfor
+printf "\n\"Created: %s\"\n", scalar localtime;
+
+__END__

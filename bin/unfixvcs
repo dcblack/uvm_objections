@@ -1,0 +1,9 @@
+#!/usr/bin/perl -pi
+#
+# Undo VCS SystemVerilog bug fix (see fixvcs)
+
+BEGIN { push @ARGV,"performance.sv" unless @ARGV; }
+
+$c += s{//}{:} if m{^\s*end[a-z]+ //};
+
+END { printf STDERR "Unfixed %d\n", $c; }
