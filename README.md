@@ -64,6 +64,14 @@ See manpage on `screen` for more information.
 
 3. To extract logfile information into a spreadsheet CSV file
 
+Use the `extract` makefile target:
+
+```
+    % make extract VENDOR=synopsys
+```
+
+Or execute the bin/extract script directly.
+
 ```
     % extract -t DIR/* >data.csv
 ```
