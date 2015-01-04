@@ -571,7 +571,6 @@ package Performance_pkg;
     m_starting_event = m_global_event_pool.get("starting");
     assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_monitor));
     assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_object));
-    assert(uvm_config_db#(longint)::get(this, "", "count",       m_count));
     assert(uvm_config_db#(longint)::get(this, "", "warnings",    m_warnings));
   endfunction : My_monitor_t::connect_phase
   //----------------------------------------------------------------------------
@@ -822,6 +821,10 @@ package Performance_pkg;
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "agents", agents)); //<allow from command-line
     uvm_config_db#(shortint)::set(uvm_top, "*", "agents", agents);
+    if (agents <=0) begin
+      `uvm_warning
+      agents = 1;
+    end
     `uvm_info("build_phase",$sformatf("agents=%0d",agents), UVM_NONE);
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "shape", shape)); //<allow from command-line
@@ -837,7 +840,7 @@ package Performance_pkg;
       assert($sscanf(tempstr,"%g",t));
       count = 0 + t;
     end
-    uvm_config_db#(longint)::set(uvm_top, "*", "count", count);
+    uvm_config_db#(longint)::set(uvm_top, "*", "count", count/agents);
     `uvm_info("build_phase",$sformatf("count=%0d",count), UVM_NONE);
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead
