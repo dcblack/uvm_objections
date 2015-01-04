@@ -306,7 +306,7 @@ endif
 ifeq "$(findstring vcs,$(MAKECMDGOALS))" "vcs"
   SIMULATOR    := VCS
   VCS          := vcs
-  VCS_OPTS     := -sverilog ${VERILOG_DEFINES} +acc +vpi -timescale=1ns/1ns $(EXTRA_VCS_OPTS)
+  VCS_OPTS     := -sverilog ${VERILOG_DEFINES} -lrt +acc +vpi -timescale=1ns/1ns $(EXTRA_VCS_OPTS)
 endif
 
 ##############################################################################
@@ -360,7 +360,7 @@ version:
 	@echo "INFO: UVM version: $(UVM_VER)$(UVM_SUB_VER)"
 
 %.so: %.cpp
-	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o $@ $<
+	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -lrt -shared -g -o $@ $<
 
 %.x: $(SRCS)
 	$(CXX) -g -std=c++11 $(CXXFLAGS) -lrt -o $@ $(SRCS)
