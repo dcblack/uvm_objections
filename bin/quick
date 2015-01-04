@@ -4,7 +4,8 @@
 # -p pause
 # -q quiet
 
-my $basic_opts="-debug -o";
+#my $basic_opts="-debug -o";
+my $basic_opts="-debug";
 my $agents=3;
 my $bfmobj=1;
 my $monitor=1;
