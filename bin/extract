@@ -84,7 +84,7 @@ for my $filename (@ARGV) {
   my $basename = $filename;
   #$basename =~ s{[.]txt$}{};
   $basename =~ s{.*/}{};
-  $basename = '"'.$basename.'"';
+  #$basename = '"'.$basename.'"';
   my ($line, $launch, $starting, $finished, $transactions, $objected, $elapsed, $wall);
   my ($run, $vendor, $version, $iterations, $propagate) = (0, $UN, $UN, $UN, $UN);
   my ($tr_len, $switching, $use_monitor, $shape, $count, $bfm_object, $use_seq, $levels, $agents, $messages, $warnings) ;
@@ -122,7 +122,7 @@ for my $filename (@ARGV) {
       eval "\$$1=$2;";
     } elsif ($line =~ m{([0-9,]+) transactions created}) {
       $transactions = $1;
-    } elsif ($line =~ m{RESULT: .* objected ([0-9,]+) times in ([0-9,]+) ms}) {
+    } elsif ($line =~ m{RESULT: .* objected ([0-9,]+) times in ([-0-9,]+) ms}) {
       $objected = $1;
       $elapsed = $2;
       $elapsed =~ s{,}{}g;
