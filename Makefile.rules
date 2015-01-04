@@ -363,7 +363,7 @@ version:
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o $@ $<
 
 %.x: $(SRCS)
-	$(CXX) -g -std=c++11 $(CXXFLAGS) -o $@ $(SRCS)
+	$(CXX) -g -std=c++11 $(CXXFLAGS) -lrt -o $@ $(SRCS)
 	./$@
 
 #-------------------------------------------------------------------------------

@@ -44,34 +44,42 @@ double get_cpu_time(void)
 //  Posix/Linux
 #else
 #include <time.h>
-#include <sys/time.h>
 
 extern "C"
 double get_wall_time(void)
 {
-  struct timeval time;
-  if (gettimeofday(&time,NULL)){
+  timespec time;
+  if (clock_gettime(CLOCK_REALTIME,&time)){
     //  Handle error
     return 0;
   }
-  return double(time.tv_sec) + double(time.tv_usec) * .000001;
+  return double(time.tv_sec) + double(time.tv_nsec) * 1.0e-9;
 }
 
 extern "C"
 double get_cpu_time(void)
 {
-  return double(clock()) / CLOCKS_PER_SEC;
+  timespec time;
+  if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&time)){
+    //  Handle error
+    return 0;
+  }
+  return double(time.tv_sec) + double(time.tv_nsec) * 1.0e-9;
+  //return double(clock()/CLOCKS_PER_SEC);
 }
 #endif
-////////////////////////////////////////////////////////////////////////////////
-char const * const HELP =
-"NAME\n"
-"  get_time - self-test of the get_cpu_time() and get_wall_time() routines.\n"
-"EXAMPLES\n"
-"  # To create self-test\n"
-"  g++ -DGET_TIME_SELFTEST -o get_time get_time.cpp && ./get_time 24\n"
-"  ./get_time 28\n"
-;
+
+//////////////////////////////////////////////////////////////////////////////////
+//
+//   ####  ##### #     ##### ####### #####  ####  #######                         
+//  #    # #     #     #        #    #     #    #    #                            
+//  #      #     #     #        #    #     #         #                            
+//   ####  ##### #     #####    #    #####  ####     #                            
+//       # #     #     #        #    #          #    #                            
+//  #    # #     #     #        #    #     #    #    #                            
+//   ####  ##### ##### #        #    #####  ####     #                            
+//
+//////////////////////////////////////////////////////////////////////////////////
 //------------------------------------------------------------------------------
 #ifdef GET_TIME_SELFTEST
 #include <iostream>
@@ -81,6 +89,14 @@ char const * const HELP =
 #include <stdint.h>
 using namespace std;
 uint64_t mask(uint64_t value) { return value & 0xFFFFFFFFULL; }
+char const * const HELP =
+"NAME\n"
+"  get_time - self-test of the get_cpu_time() and get_wall_time() routines.\n"
+"EXAMPLES\n"
+"  # To create self-test\n"
+"  g++ -DGET_TIME_SELFTEST -lrt -o get_time get_time.cpp && ./get_time 24\n"
+"  ./get_time 28\n"
+;
 int main(int argc, char* argv[])
 {
   // Defaults
