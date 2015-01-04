@@ -817,19 +817,19 @@ package Performance_pkg;
     // Manage configuration
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "level", levels)); //<allow from command-line
     uvm_config_db#(shortint)::set(uvm_top, "*", "level", levels);
-    `uvm_info("build_phase",$sformatf("levels=%0d",levels), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("levels=%0d",levels), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "agents", agents)); //<allow from command-line
     uvm_config_db#(shortint)::set(uvm_top, "*", "agents", agents);
     if (agents <=0) begin
-      `uvm_warning
+      `uvm_warning("build_phase",$sformatf("Detected agents <= 0 (%d); forcing to 1.",agents))
       agents = 1;
     end
-    `uvm_info("build_phase",$sformatf("agents=%0d",agents), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("agents=%0d",agents), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "shape", shape)); //<allow from command-line
     uvm_config_db#(shape_t)::set(uvm_top, "*", "shape", shape);
-    `uvm_info("build_phase",$sformatf("shape=%0d",shape), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("shape=%0d",shape), UVM_NONE)
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead
     // of raw integers on command-line
@@ -841,7 +841,7 @@ package Performance_pkg;
       count = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "count", count/agents);
-    `uvm_info("build_phase",$sformatf("count=%0d",count), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("count=%0d",count), UVM_NONE)
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead
     // of raw integers on command-line
@@ -853,7 +853,7 @@ package Performance_pkg;
       messages = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "messages", messages);
-    `uvm_info("build_phase",$sformatf("messages=%0d",messages), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("messages=%0d",messages), UVM_NONE)
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead of raw integers
     tempstr = "";
@@ -864,19 +864,19 @@ package Performance_pkg;
       warnings = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "warnings", warnings);
-    `uvm_info("build_phase",$sformatf("warnings=%0d",warnings), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("warnings=%0d",warnings), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_monitor", use_monitor)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_monitor", use_monitor);
-    `uvm_info("build_phase",$sformatf("use_monitor=%0d",use_monitor), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("use_monitor=%0d",use_monitor), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "bfm_object", bfm_object)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "bfm_object", bfm_object);
-    `uvm_info("build_phase",$sformatf("bfm_object=%0d", bfm_object), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("bfm_object=%0d", bfm_object), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_seq", use_seq);
-    `uvm_info("build_phase",$sformatf("use_seq=%0d", use_seq), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("use_seq=%0d", use_seq), UVM_NONE)
 
     // Transaction-length specified in HEX to distinguish the nybbles
     tempstr = "";
@@ -885,7 +885,7 @@ package Performance_pkg;
       assert($sscanf(tempstr,"%h", tr_len));
     end
     uvm_config_db#(tr_len_t)::set(uvm_top, "*", "tr_len", tr_len);
-    `uvm_info("build_phase",$sformatf("tr_len=%0d", tr_len), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("tr_len=%0d", tr_len), UVM_NONE)
 
     // Context-switching 0 or 1 only
     tempstr = "";
@@ -894,11 +894,11 @@ package Performance_pkg;
       assert($sscanf(tempstr,"%d", switching));
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "switching", switching);
-    `uvm_info("build_phase",$sformatf("switching=%0d", switching), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("switching=%0d", switching), UVM_NONE)
 
     // Propagate
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
-    `uvm_info("build_phase",$sformatf("propagate=%0d", propagate), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("propagate=%0d", propagate), UVM_NONE)
 
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
@@ -907,7 +907,7 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::reset_phase(uvm_phase phase);
-    `uvm_info("build_phase",$sformatf("\n%s\nRUNNING\n%s", SEP1, SEP2), UVM_NONE);
+    `uvm_info("build_phase",$sformatf("\n%s\nRUNNING\n%s", SEP1, SEP2), UVM_NONE)
   endtask : My_test_t::reset_phase
 
   //----------------------------------------------------------------------------
