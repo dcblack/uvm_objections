@@ -17,6 +17,7 @@
 	<li><a href="#name">NAME</a></li>
 	<li><a href="#synopsis">SYNOPSIS</a></li>
 	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#quick_options">QUICK OPTIONS</a></li>
 	<li><a href="#options">OPTIONS</a></li>
 	<li><a href="#versions">VERSIONS</a></li>
 	<li><a href="#copyright">COPYRIGHT</a></li>
@@ -44,18 +45,56 @@ millions of times and report the overall CPU time.</p>
 <p>
 </p>
 <hr />
+<h1><a name="quick_options">QUICK OPTIONS</a></h1>
+<pre>
+    -1      single test
+    -A #    agents
+    -B 0|1  bfm (driver/monitor) objections
+    -C #    count
+    -h      help
+    -I #    infos
+    -L #    levels of hierarchy in agent
+    -M 0|1  monitor in/active
+    -n      not really
+    -o      objection tracing
+    -p #    pause # seconds between simulations
+    -P 0|1  propagate objections up hierarchy
+    -q      quiet
+    -R LIST run-lengths of transactions
+    -S 0|1  shape wide|narrow
+    -t TAG  part of logfile name
+    -U 0|1  use short|full sequence
+    -V LIST vendor list
+    -v      verbose
+    -W #    warnings
+    -X #    context switching choice</pre>
+<p>
+</p>
+<hr />
 <h1><a name="options">OPTIONS</a></h1>
 <dl>
+<dt><strong><a name="item__2d1"><strong>-1</strong></a></strong>
+
+<dd>
+<p>Run a single test (pipe cleaner).</p>
+</dd>
+</li>
+<dt><strong><a name="item__2da__23"><strong>-A</strong> #</a></strong>
+
+<dd>
+<p>Number of agents to instantiate</p>
+</dd>
+</li>
+<dt><strong><a name="item__2db_0__7c_1"><strong>-B</strong> 0 | 1</a></strong>
+
+<dd>
+<p>Specify whether to use BFM objections.</p>
+</dd>
+</li>
 <dt><strong><a name="item__2dc__23"><strong>-C</strong> #</a></strong>
 
 <dd>
 <p>Number of times to repeat inner loop</p>
-</dd>
-</li>
-<dt><strong><a name="item__2dd__23"><strong>-D</strong> #</a></strong>
-
-<dd>
-<p>Number of agents to instantiate</p>
 </dd>
 </li>
 <dt><strong><a name="item__2dh"><strong>-h</strong></a></strong>
@@ -64,13 +103,43 @@ millions of times and report the overall CPU time.</p>
 <p>Display this help.</p>
 </dd>
 </li>
+<dt><strong><a name="item__2di__23"><strong>-I</strong> #</a></strong>
+
+<dd>
+<p>Number of info messages to display</p>
+</dd>
+</li>
 <dt><strong><a name="item__2dl__23"><strong>-L</strong> #</a></strong>
 
 <dd>
 <p>Number of levels of hierarchy above drivers</p>
 </dd>
 </li>
-<dt><strong><a name="item__2dp_0_7c1"><strong>-P</strong> 0|1</a></strong>
+<dt><strong><a name="item__2dm_0__7c_1"><strong>-M</strong> 0 | 1</a></strong>
+
+<dd>
+<p>Specify whether to use the monitor.</p>
+</dd>
+</li>
+<dt><strong><a name="item__2dn"><strong>-n</strong></a></strong>
+
+<dd>
+<p>Not really</p>
+</dd>
+</li>
+<dt><strong><a name="item__2do"><strong>-o</strong></a></strong>
+
+<dd>
+<p>Turn-on objection tracing</p>
+</dd>
+</li>
+<dt><strong><a name="item__2dp__23"><strong>-p</strong> #</a></strong>
+
+<dd>
+<p>Seconds to delay between simulations (minimum 5)</p>
+</dd>
+</li>
+<dt><strong><a name="item__2dp_0__7c_1"><strong>-P</strong> 0 | 1</a></strong>
 
 <dd>
 <p>Propagate objections or not (affects 1.2 and above only)</p>
@@ -82,16 +151,38 @@ millions of times and report the overall CPU time.</p>
 <p>Quiet mode to suppress unnecessary output.</p>
 </dd>
 </li>
-<dt><strong><a name="item__2ds_questa_7cius_7cvcs"><strong>-S</strong> questa|ius|vcs</a></strong>
+<dt><strong><a name="item__2dr_trlen"><strong>-R</strong> <em>TRLEN</em></a></strong>
 
 <dd>
-<p>Specify simulator to use.</p>
+<p>Specify transaction length to use. This has
+a special format using one hex digit for each
+driver. Example: 3_2_1 means a length of 3ps
+for driver 2, 2ps for driver 1, and 1ps for driver 0.
+Unspecified drivers get a value of 1ps.</p>
 </dd>
 </li>
-<dt><strong><a name="item__2dp__23"><strong>-p</strong> #</a></strong>
+<dt><strong><a name="item__2ds_shape"><strong>-S</strong> <em>SHAPE</em></a></strong>
 
 <dd>
-<p>Seconds to delay between simulations (minimum 5)</p>
+<p>Specify the shape to use: {SHAPE_WIDE=0, SHAPE_NARROW=1}</p>
+</dd>
+</li>
+<dt><strong><a name="item__2dt_tag"><strong>-t</strong> <em>TAG</em></a></strong>
+
+<dd>
+<p>Specify a <em>TAG</em> to include in log file name.</p>
+</dd>
+</li>
+<dt><strong><a name="item__2du_0__7c_1"><strong>-U</strong> 0 | 1</a></strong>
+
+<dd>
+<p>Specify whether to use a full sequence (1) or a short 1ps sequence.</p>
+</dd>
+</li>
+<dt><strong><a name="item__2dv_cadence__7c_mentor__7c_synopsys"><strong>-V</strong> cadence | mentor | synopsys</a></strong>
+
+<dd>
+<p>Specify vendor (or simulator) to use.</p>
 </dd>
 </li>
 <dt><strong><a name="item__2dv"><strong>-v</strong></a></strong>
@@ -100,12 +191,24 @@ millions of times and report the overall CPU time.</p>
 <p>Verbose mode to expand explanatory output.</p>
 </dd>
 </li>
+<dt><strong><a name="item__2dw__23"><strong>-W</strong> #</a></strong>
+
+<dd>
+<p>Number of warning messages to display</p>
+</dd>
+</li>
+<dt><strong><a name="item__2dx_number"><strong>-X</strong> NUMBER</a></strong>
+
+<dd>
+<p>Specify context switching choice.</p>
+</dd>
+</li>
 </dl>
 <p>
 </p>
 <hr />
 <h1><a name="versions">VERSIONS</a></h1>
-<p>Supported versions are:</p>
+<p>Supported UVM versions are:</p>
 <ol>
 <li><strong><a name="item_1b">1b</a></strong>
 
