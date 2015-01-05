@@ -4,7 +4,7 @@ EXNAME = perf
 
 SRCS = get_env.cpp formatn.cpp get_time.cpp notify.sv performance.sv
 
-LOGFILE?=$(firstword $(shell /bin/ls -1t [aiqv]1.[0-9]*.txt))
+LOGFILE?=$(firstword $(shell /bin/ls -1t [aiqv]*-1.[0-9]*.txt))
 export LOGFILE
 JOB = ${LOGFILE}
 export JOB
