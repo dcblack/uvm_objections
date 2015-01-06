@@ -17,8 +17,8 @@ STDERR->autoflush(1);
 our %OPT;
 while ($ARGV[0] =~ m{^-}) {
   my $arg = shift @ARGV;
-  if ($arg eq '-t') {
-    $OPT{-t} = 1;
+  if ($arg eq '-orig') {
+    $OPT{-orig} = 1;
   }#endif
 }#endwhile
 
@@ -67,10 +67,10 @@ if (scalar @ARGV == 0) {
 #   v1.1d-u0r12x1s0b1m1L03I9000W0A2, 42000002, 126000008, 1020.673, 5336
 
 # Header
-if (exists $OPT{-t}) {
-  printf "%s\n",join(", ",qw(Run Filename Launched Vendor UVM Propagate Burst Switching Use_monitor Shape Count Bfm_object Use_seq Levels Agents Infos Warnings Transactions Objected Elapsed Wall-time));
-} else {
+if (exists $OPT{-orig}) {
   printf "%s\n",join(", ",qw(Filename Transactions Objected Elapsed Wall-time));
+} else {
+  printf "%s\n",join(", ",qw(Run Filename Launched Vendor UVM Propagate Burst Switching Use-monitor Shape Count Bfm-object Use-seq Levels Agents Infos Warnings Transactions Objected Elapsed Wall-time Sim-finish));
 }#endif
 
 my %sha1;
@@ -85,9 +85,10 @@ for my $filename (@ARGV) {
   #$basename =~ s{[.]txt$}{};
   $basename =~ s{.*/}{};
   #$basename = '"'.$basename.'"';
-  my ($line, $launch, $starting, $finished, $transactions, $objected, $elapsed, $wall);
+  my ($line, $launch, $simfinish, $starting, $finished, $transactions, $objected, $elapsed, $wall);
   my ($run, $vendor, $version, $iterations, $propagate) = (0, $UN, $UN, $UN, $UN);
   my ($tr_len, $switching, $use_monitor, $shape, $count, $bfm_object, $use_seq, $levels, $agents, $messages, $warnings) ;
+  $simfinish=$NA;
   $transactions = $NA;
   $objected = $NA;
   $elapsed = $NA;
@@ -97,7 +98,21 @@ for my $filename (@ARGV) {
     $line =~ s{^# *}{};
     if ($line =~ m{Analyze_performance (\w+) (\S+) }) {
       ($vendor,$version) = ($1,$2);
+    } elsif ($line =~ m{^UVM-(\S+)$}) {
+      $version = $1;
+    } elsif ($line =~ m{INFO: Simulator: (\S+)}) {
+      $vendor = $1;
+    } elsif ($line =~ m{ -D(QUESTA) }) {
+      $vendor = $1;
+    } elsif ($line =~ m{ -D(VCS) }) {
+      $vendor = $1;
+    } elsif ($line =~ m{ -D(INCA) }) {
+      $vendor = $1;
+    } elsif ($line =~ m{ -D(ALDEC) }) {
+      $vendor = $1;
     } elsif ($line =~ m{\[(\d+)\]% env UVM_HOME}) {
+      $run = $1;
+    } elsif ($line =~ m{INFO: RUN=(\S+)}) {
       $run = $1;
     } elsif ($line =~ m{^  (\w+\.\w{2,3}) (\w{40,40})$}) {
       my ($src,$sha1) = ($1,$2);
@@ -111,6 +126,7 @@ for my $filename (@ARGV) {
         $starting = $2;
       } else {
         $finished = $2;
+        $wall = $finished - $starting;
       }#endif
       $line =~ m{TIMESTAMP: +\w+ +at +\d+ +\w+ +(\w+) +(\d+) +(\d+):(\d+):(\d+) +(\w+) +(\d+)};
       my ($mo,$da,$yr,$hr,$mn,$tz) = ($mo{$1},$2,$7,$3,$4,$6);
@@ -127,19 +143,22 @@ for my $filename (@ARGV) {
       $elapsed = $2;
       $elapsed =~ s{,}{}g;
       $elapsed = sprintf("%1.3f",$elapsed/1000.0);
+    } elsif ($line =~ m{finish at simulation time +(\d+)}) {
+      $simfinish = $1;
     }#endif
-    if ($line =~ m{Finished}) {
-      $objected =~ s{,}{}g;
-      $transactions =~ s{,}{}g;
-      $wall = $finished - $starting;
-      if (exists $OPT{-t}) {
-        printf "%s\n",join(", ",($run, $basename,$launch,$vendor,$version,$propagate,$tr_len,$switching,$use_monitor,$shape,$count,$bfm_object,$use_seq,$levels,$agents,$messages,$warnings,$transactions,$objected,$elapsed,$wall));
-      } else {
-        printf "%s\n",join(", ",($basename,$transactions,$objected,$elapsed,$wall));
-      }#endif
+    #--------------------------------------------------------------------------
+    if ($line =~ m{TIMESTAMP: Finished}) {
       last;
     }#endif
   }#endwhile
+  $objected =~ s{,}{}g;
+  $transactions =~ s{,}{}g;
+  $tr_len = join('_',split('',sprintf("%x",$tr_len)));
+  if (exists $OPT{-orig}) {
+    printf "%s\n",join(", ",($basename,$transactions,$objected,$elapsed,$wall));
+  } else {
+    printf "%s\n",join(", ",($run, $basename,$launch,$vendor,$version,$propagate,$tr_len,$switching,$use_monitor,$shape,$count,$bfm_object,$use_seq,$levels,$agents,$messages,$warnings,$transactions,$objected,$elapsed,$wall,$simfinish));
+  }#endif
   close $fh;
 }#endfor
 printf "\n\"Created: %s\"\n", scalar localtime;

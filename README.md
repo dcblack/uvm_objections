@@ -70,7 +70,7 @@ See manpage on `screen` for more information.
 3. To extract logfile information into a spreadsheet CSV file
 
 ```
-    % extract -t DIR/* >data.csv
+    % extract DIR/* >data.csv
 ```
 
 Manifest
