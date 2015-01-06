@@ -42,11 +42,13 @@ millions of times and report the overall CPU time.
     -A #    agents
     -B 0|1  bfm (driver/monitor) objections
     -C #    count
+    -f FILE source analysis script (created with -na)
     -h      help
     -I #    infos
     -L #    levels of hierarchy in agent
     -M 0|1  monitor in/active
     -n      not really
+    -na     not really, just create analysis script (requires -f)
     -o      objection tracing
     -p #    pause # seconds between simulations
     -P 0|1  propagate objections up hierarchy
@@ -202,6 +204,7 @@ exit 0
 export TAG
 not_really=0
 export obj_trace
+script_file=""
 
 function Uniq() {
   perl -le 'for$r(@ARGV){next if exists $u{$r};push@r,$r;$u{$r}=1;}print"@r";' $@
@@ -216,7 +219,7 @@ function Analyze_performance() {
   shift; shift; shift
   local var val
   for arg in $@; do
-    if [[ $arg =~ [A-Za-z]=* ]]; then
+    if [[ $arg =~ [A-Za-z]*=* ]]; then
       var=$(echo "$arg"|perl -pe 's/=.*//')
       val=$(echo "$arg"|perl -pe 's/.*=//')
       local $var
@@ -265,14 +268,19 @@ function Analyze_performance() {
   LOG="$(echo $LOG|tr BMSXUR bmsxur)" ; # force to lowercase
   LOG="$LOG$TAG"
   export LOGFILE="$LOG.txt"
-  if [[ $not_really = 0 ]]; then
+  if [[ $not_really == 0 ]]; then
     bin/header "$LOG"
     echo "------------------------------------------------------------------------------"
-    echo "Analyze_performance ${VENDOR} ${VERS} $*"                             | tee    $LOG.txt
-    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
-                    env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
+    echo "Analyze_performance ${RUN} ${VENDOR} ${VERS} $*"                                                    | tee    $LOG.txt
+    echo "env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
+          env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
   else
-    echo "[${RUN}]% env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1  | tee   $LOG.txt"
+    if [[ "$script_file" != "" ]]; then
+      echo "Analyze_performance ${RUN} ${VENDOR} ${VERS} $*" >>$script_file
+    fi
+    if [[ $quiet == 0 ]]; then
+      echo "env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1  | tee $LOG.txt"
+    fi
   fi
 } #end Analyze_performance
 
@@ -300,7 +308,7 @@ function Doit() {
   local first_only=0
   local OPTS
   # Defaults
-  if [[ "$LEVELS"    = "" ]]; then LEVELS="3 99"     ; fi
+  if [[ "$LEVELS"    = "" ]]; then LEVELS="4 32"     ; fi
   if [[ "$AGENTS"    = "" ]]; then AGENTS="2 5"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
   if [[ "$INFOS"     = "" ]]; then INFOS="0 9000"    ; fi
@@ -320,26 +328,28 @@ function Doit() {
     elif [[ "${1}" = "-h"     ]]; then Help;
     elif [[ "${1}" = "-help"  ]]; then Help;
     elif [[ "${1}" = "--help" ]]; then Help;
-    elif [[ "${1}" = "-d"     ]]; then debug=1;
-    elif [[ "${1}" = "-debug" ]]; then debug=1;
-    elif [[ "${1}" = "-n"     ]]; then not_really=1;
-    elif [[ "${1}" = "-o"     ]]; then obj_trace=1;
-    elif [[ "${1}" = "-trace" ]]; then obj_trace=1;
-    elif [[ "${1}" = "-p"     ]]; then pause="${2}";     shift;
-    elif [[ "${1}" = "-t"     ]]; then TAG="${2}";       shift;
-    elif [[ "${1}" = "-C"     ]]; then COUNTS="${2}";    shift;
     elif [[ "${1}" = "-A"     ]]; then AGENTS="${2}";    shift;
-    elif [[ "${1}" = "-L"     ]]; then LEVELS="${2}";    shift;
-    elif [[ "${1}" = "-I"     ]]; then INFOS="${2}";     shift;
-    elif [[ "${1}" = "-P"     ]]; then PROPAGATE="${2}"; shift;
-    elif [[ "${1}" = "-V"     ]]; then VENDOR="${2}";    shift;
-    elif [[ "${1}" = "-R"     ]]; then TR_LEN="${2}";    shift;
     elif [[ "${1}" = "-B"     ]]; then USEBFM="${2}";    shift;
+    elif [[ "${1}" = "-C"     ]]; then COUNTS="${2}";    shift;
+    elif [[ "${1}" = "-I"     ]]; then INFOS="${2}";     shift;
+    elif [[ "${1}" = "-L"     ]]; then LEVELS="${2}";    shift;
     elif [[ "${1}" = "-M"     ]]; then USEMON="${2}";    shift;
-    elif [[ "${1}" = "-U"     ]]; then USESEQ="${2}";    shift;
+    elif [[ "${1}" = "-P"     ]]; then PROPAGATE="${2}"; shift;
+    elif [[ "${1}" = "-R"     ]]; then TR_LEN="${2}";    shift;
     elif [[ "${1}" = "-S"     ]]; then SHAPE="${2}";     shift;
+    elif [[ "${1}" = "-U"     ]]; then USESEQ="${2}";    shift;
+    elif [[ "${1}" = "-V"     ]]; then VENDOR="${2}";    shift;
     elif [[ "${1}" = "-W"     ]]; then WARNINGS="${2}";  shift;
     elif [[ "${1}" = "-X"     ]]; then SWITCHING="${2}"; shift;
+    elif [[ "${1}" = "-d"     ]]; then debug=1;
+    elif [[ "${1}" = "-debug" ]]; then debug=1;
+    elif [[ "${1}" = "-f"     ]]; then script_file="${2}"; shift;
+    elif [[ "${1}" = "-n"     ]]; then not_really=1;
+    elif [[ "${1}" = "-na"    ]]; then not_really=2;
+    elif [[ "${1}" = "-o"     ]]; then obj_trace=1;
+    elif [[ "${1}" = "-p"     ]]; then pause="${2}";     shift;
+    elif [[ "${1}" = "-t"     ]]; then TAG="${2}";       shift;
+    elif [[ "${1}" = "-trace" ]]; then obj_trace=1;
     elif [[ "${1}" = "-v"     ]]; then verbose="${2}";   shift; quiet=0;
     else                               OPTS="$OPTS ${1}"
     fi
@@ -381,60 +391,64 @@ function Doit() {
 
   let run=1
   let first=1
-  for V in $(Split $VENDORS); do
-    for L in $(Split $LEVELS); do
-      for I in $(Split $INFOS); do
-        for W in $(Split $WARNINGS); do
-          for A in $(Split $AGENTS); do
-            for U in $(Split $USESEQ); do
-            for B in $(Split $USEMON); do
-            for M in $(Split $USEBFM); do
-            for S in $(Split $SHAPE); do
-              for R in $(Split $TR_LEN); do
-                for X in $(Split $SWITCHING); do
-                  for UVM in $(Split $VERSIONS); do
-                    # Pause between runs to allow clean interrupt
-                    if [[ $not_really = 0 && $first = 0 && $pause != 0 ]]; then
-                      echo -n "Pausing $pause"
-                      let i=$pause
-                      while [[ $i -gt 0 ]]; do
-                        echo -n "."
-                        sleep 1;
-                        let i--
-                      done
-                      echo ""
-                    fi
-                    let first=0
+  if [[ $not_really == 0 && $script_file != "" ]]; then
+    source $script_file
+  else
+    for V in $(Split $VENDORS); do
+      for L in $(Split $LEVELS); do
+        for I in $(Split $INFOS); do
+          for W in $(Split $WARNINGS); do
+            for A in $(Split $AGENTS); do
+              for U in $(Split $USESEQ); do
+              for B in $(Split $USEMON); do
+              for M in $(Split $USEBFM); do
+              for S in $(Split $SHAPE); do
+                for R in $(Split $TR_LEN); do
+                  for X in $(Split $SWITCHING); do
+                    for UVM in $(Split $VERSIONS); do
+                      # Pause between runs to allow clean interrupt
+                      if [[ $not_really == 0 && $first = 0 && $pause != 0 ]]; then
+                        echo -n "Pausing $pause"
+                        let i=$pause
+                        while [[ $i -gt 0 ]]; do
+                          echo -n "."
+                          sleep 1;
+                          let i--
+                        done
+                        echo ""
+                      fi
+                      let first=0
 
-                    case "$UVM" in
-                      1.1b) uv=1.1b; pm=$PROPAGATE  ;;
-                      1.1c) uv=1.1c; pm=$PROPAGATE  ;;
-                      1.1d) uv=1.1d; pm=$PROPAGATE  ;;
-                      1.2r) uv=1.2 ; pm=0           ;;
-                      1.2 ) uv=1.2 ; pm=$PROPAGATE  ;;
-                      1.* ) uv=$UVM; pm=$PROPAGATE  ;;
-                         *) echo "ERROR: Weird UVM version '$UVM'" ; exit 1 ;;
-                    esac
-                    Analyze_performance $run $V $uv L=$L A=$A C=$COUNTS P=$pm U=$U R=$R X=$X OPTS="$OPTS" I=$I W=$W B=$B M=$M S=$S
-                    let run++
-                    if [[ $not_really = 0 ]]; then
-                      echo ""
-                    fi
-                    if [[ $first_only = 1 ]]; then
-                      break 42
-                    fi
+                      case "$UVM" in
+                        1.1b) uv=1.1b; pm=$PROPAGATE  ;;
+                        1.1c) uv=1.1c; pm=$PROPAGATE  ;;
+                        1.1d) uv=1.1d; pm=$PROPAGATE  ;;
+                        1.2r) uv=1.2 ; pm=0           ;;
+                        1.2 ) uv=1.2 ; pm=$PROPAGATE  ;;
+                        1.* ) uv=$UVM; pm=$PROPAGATE  ;;
+                           *) echo "ERROR: Weird UVM version '$UVM'" ; exit 1 ;;
+                      esac
+                      Analyze_performance $run $V $uv C=$COUNTS OPTS="$OPTS" L=$L A=$A P=$pm U=$U R=$R X=$X I=$I W=$W B=$B M=$M S=$S
+                      let run++
+                      if [[ $not_really == 0 ]]; then
+                        echo ""
+                      fi
+                      if [[ $first_only = 1 ]]; then
+                        break 42
+                      fi
+                    done
                   done
                 done
               done
-            done
-            done
-            done
+              done
+              done
+              done
             done
           done
         done
       done
     done
-  done
+  fi
 
   echo "------------------------------------------------------------------------------"
   echo "INFO: Don't forget to clean-up simulator temporaries..."
