@@ -74,11 +74,13 @@ if (exists $OPT{-orig}) {
 }#endif
 
 my %sha1;
+my @mismatch;
+my %errors;
 my $NA = '#N/A';
 my $UN = '"Unknown"';
 my @mo = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 my %mo; for my $i (0..11) { $mo{$mo[$i]} = $i+1; }
-for my $filename (@ARGV) {
+for my $filename (sort {-C $a <=> -C $b} @ARGV) {
   my $fh;
   open $fh,'<',$filename;
   my $basename = $filename;
@@ -93,8 +95,13 @@ for my $filename (@ARGV) {
   $objected = $NA;
   $elapsed = $NA;
   $wall = $NA;
+  %errors = ();
   while ($line = <$fh>) {
     chomp $line;
+    #grep -i error v*txt | grep -v '' | grep -v save_restore
+    if ($line =~ m{error}i and $line !~ m{UVM_ERROR : *0$} and $line !~ m{save_restore}) {
+      $errors{$.} = $line;
+    }
     $line =~ s{^# *}{};
     if ($line =~ m{Analyze_performance (\w+) (\S+) }) {
       ($vendor,$version) = ($1,$2);
@@ -117,10 +124,9 @@ for my $filename (@ARGV) {
     } elsif ($line =~ m{^  (\w+\.\w{2,3}) (\w{40,40})$}) {
       my ($src,$sha1) = ($1,$2);
       if (exists $sha1{$src}) {
-        warn "Run $run Sha1sum mismatch $src\n" unless $sha1 eq $sha1{$src};
-      } else {
-        $sha1{$src} = $sha1;
-      }#endif
+        push @mismatch,sprintf("Sha1sum mismatch %s (%s,%s)",$src,$sha1,$sha1{$src}) unless $sha1 eq $sha1{$src};
+      }
+      $sha1{$src} = $sha1;
     } elsif ($line =~ m{TIMESTAMP: (\w+) at +(\d+) }) {
       if ($1 eq 'Starting') {
         $starting = $2;
@@ -159,6 +165,8 @@ for my $filename (@ARGV) {
   } else {
     printf "%s\n",join(", ",($run, $basename,$launch,$vendor,$version,$propagate,$tr_len,$switching,$use_monitor,$shape,$count,$bfm_object,$use_seq,$levels,$agents,$messages,$warnings,$transactions,$objected,$elapsed,$wall,$simfinish));
   }#endif
+  for my $lno (sort {$a<=>$b} keys %errors) { printf STDERR "ERROR: Run %s line %d: %s\n",$run,$lno,$errors{$lno}; }
+  while (@mismatch) { printf STDERR "WARNING: Run %s %s\n",$run,shift @mismatch; }
   close $fh;
 }#endfor
 printf "\n\"Created: %s\"\n", scalar localtime;
