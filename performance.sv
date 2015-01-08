@@ -448,6 +448,7 @@ package Performance_pkg;
     longint         m_count    = 0;
     longint         m_messages = 0;
     shortint        m_id       = 0;
+    static shortint s_first_id = 0;
     longint         m_switching;
     tr_len_t        m_tr_len;
     //--------------------------------------------------------------------------
@@ -478,6 +479,8 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   task My_driver_t::run_phase(uvm_phase phase);
     string obj_name = $sformatf("driver[%0d]",m_id);
+    if (s_first_id == 0) s_first_id = m_id;
+    #0; //< Make sure other processes get to setup before first objection
     if (m_object) phase.raise_objection(this, "Raise to get off zero");
     #1; // Get off zero
     if (m_object) phase.drop_objection(this, "Drop and wait to start");
@@ -504,7 +507,7 @@ package Performance_pkg;
       if (m_switching == 1) begin // normal context switching
         repeat (m_tr_len) begin
           #1ps;
-          if (m_id == 0 && m_messages > 0) begin
+          if (m_id == s_first_id && m_messages > 0) begin
             `uvm_info("run_phase",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
             --m_messages;
           end
@@ -549,6 +552,7 @@ package Performance_pkg;
     longint         m_count    = 0;
     longint         m_warnings = 0;
     shortint        m_id       = 0;
+    static shortint s_first_id = 0;
     virtual My_intf m_vif;
     //--------------------------------------------------------------------------
     // Constructor
@@ -576,6 +580,7 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   task My_monitor_t::run_phase(uvm_phase phase);
     string   obj_name = $sformatf("monitor[%0d]",m_id);
+    if (s_first_id == 0) s_first_id = m_id;
     m_starting_event.wait_trigger();
     //////////////////////////////////////////////////////////////////////////
     //
@@ -595,7 +600,7 @@ package Performance_pkg;
           phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
           g_measured_objections++;
         end
-        if (m_id == 0 && m_warnings > 0) begin
+        if (m_id == s_first_id && m_warnings > 0) begin
           `uvm_warning("Driver","<warn>")
           --m_warnings;
         end
@@ -765,6 +770,7 @@ package Performance_pkg;
     uvm_event        m_starting_event;
     real             m_cpu_starting_time,  m_cpu_finished_time;
     real             m_wall_starting_time, m_wall_finished_time;
+    bit              m_propagate = 1; //< default old way
     string           m_features = "";
     //--------------------------------------------------------------------------
     // Constructor
@@ -799,7 +805,6 @@ package Performance_pkg;
     tr_len_t tr_len         = 0;   //< default (0 = equal; else each nibble)
     longint  messages       = 0;
     longint  warnings       = 0;
-    bit      propagate      = 1; //< default old way
     string   tempstr        = "";
     int      status;
 
@@ -897,8 +902,8 @@ package Performance_pkg;
     `uvm_info("build_phase",$sformatf("switching=%0d", switching), UVM_NONE)
 
     // Propagate
-    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
-    `uvm_info("build_phase",$sformatf("propagate=%0d", propagate), UVM_NONE)
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", m_propagate));
+    `uvm_info("build_phase",$sformatf("propagate=%0d", m_propagate), UVM_NONE)
 
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
@@ -912,12 +917,10 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::run_phase(uvm_phase phase);
-    bit propagate = 1; //< default old way
     uvm_objection objection;
     objection = phase.get_objection();
     `ifdef UVM_POST_VERSION_1_1
-    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
-    objection.set_propagate_mode(propagate);
+    objection.set_propagate_mode(m_propagate);
     `endif
     objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
   endtask : My_test_t::run_phase
@@ -933,7 +936,6 @@ package Performance_pkg;
     bit      bfm_object = 1;
     bit      shape = SHAPE_WIDE;
     bit      use_monitor = 1;
-    bit      propagate = 1; //< default old way
     longint  messages = 0;
     longint  warnings = 0;
     uvm_component seqrs[$];
@@ -958,8 +960,7 @@ package Performance_pkg;
     assert(messages >= 0);
     assert(warnings >= 0);
     `ifdef UVM_POST_VERSION_1_1
-    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", propagate));
-    objection.set_propagate_mode(propagate);
+    objection.set_propagate_mode(m_propagate);
     `endif
     // Create brief string describing the features used
     if (use_seq == 0)     m_features = {m_features, "; short-seq"}; else m_features = {m_features, "; long-seq"};
@@ -967,12 +968,11 @@ package Performance_pkg;
     if (shape == 0)       m_features = {m_features, "; wide"}; else m_features = {m_features, "; narrow"};
     if (use_monitor == 0) m_features = {m_features, "; no-monitor"}; else m_features = {m_features, "; monitor"};
     if (tr_len != 0)      m_features = {m_features, $sformatf("; tr%0X", tr_len)};
-    if (propagate == 0)   m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
+    if (m_propagate == 0) m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
     if (switching == 0)   m_features = {m_features, "; limited-switching"};
     if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
     if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
-    #0;
-    #0;
+    #0; //< Make sure other processes get to setup before first objection
     phase.raise_objection(this, "raising to allow setup"); // allow setup
     m_starting_event = m_global_event_pool.get("starting");
     #2ps; // get ahead of drivers and monitors
@@ -1029,6 +1029,7 @@ package Performance_pkg;
     uvm_objection objection;
     objection = phase.get_objection();
     objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
+    #0; //< Make sure other processes get to setup before first objection
     phase.raise_objection(this, "raising to extend driver time"); // simulate sequence start
     g_measured_objections++;
     #(10*`CLOCK_PERIOD);
