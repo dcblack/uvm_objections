@@ -238,13 +238,6 @@ function Analyze_performance() {
   fi
   local clean='clean'
   local LOG="$RUN-$VERS"
-  if [[ ${#VERS} = 3    ]]; then
-    if [[ "$P" = 0 ]]; then
-      LOG="${LOG}_";
-    else
-      LOG="${LOG}+";
-    fi
-  fi
   LOG="$LOG-"
   local t
   t=$(echo "P=$P;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
