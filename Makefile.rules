@@ -1,11 +1,11 @@
 #!make -f
 # -*- make -*- vim:syntax=make:fdm=marker:fmr=<<<,>>>:tw=80:sw=2:et
 # Find path to THIS file
-MAKEFILE_RULES := $(realpath $(lastword $(MAKEFILE_LIST)))
+MAKEFILE_ORIG  := $(realpath $(firstword $(MAKEFILE_LIST)))
+MAKEFILE_RULES := $(realpath $(lastword  $(MAKEFILE_LIST)))
 # Allow customization (e.g. EMAIL)
 -include ${HOME}/.makefile
 #
-$(info INFO: $$ Makefile,v 1.1 2014/05/22 04:26:56 dcblack Exp $$)
 ################################################################################
 # $License: Apache 2.0 $
 #
@@ -36,7 +36,7 @@ define MAKEFILE_DOCUMENTATION
 
 =head1 NAME
 
-B<Makefile> - Makefile for automation of UVM
+B<Makefile.rules> - Makefile for automation of UVM
 
 =head1 SYNOPSIS
 
@@ -139,9 +139,9 @@ Remove automatically generated files and libraries from (old) simulations.
 
 Display git sha1 hashes of source files.
 
-=item B<version>
+=item B<info>
 
-Display UVM version
+Display job information: run label, simulator and UVM version
 
 =back
 
@@ -163,15 +163,15 @@ endef
 ################################################################################
 
 # Select UVM version
-ifeq "$V" "1.2"
+ifeq "$(UVM)" "1.2"
   UVM_VER := 1.2
   UVM_SUB_VER := 
 endif
-ifeq "$V" "1.1d"
+ifeq "$(UVM)" "1.1d"
   UVM_VER := 1.1
   UVM_SUB_VER := d
 endif
-ifeq "$V" "1.1c"
+ifeq "$(UVM)" "1.1c"
   UVM_VER := 1.1
   UVM_SUB_VER := c
 endif
@@ -309,6 +309,11 @@ ifeq "$(findstring vcs,$(MAKECMDGOALS))" "vcs"
   VCS_OPTS     := -sverilog ${VERILOG_DEFINES} -lrt +acc +vpi -timescale=1ns/1ns $(EXTRA_VCS_OPTS)
 endif
 
+ifeq "$(findstring ius,$(MAKECMDGOALS))" "aldec"
+  SIMULATOR    := ALDEC
+  $(warning ALDEC not yet supported)
+endif
+
 ##############################################################################
 ##
 ##  Compile and run target
@@ -320,7 +325,7 @@ PHONIES := \
   ius ius_debug ius_std ius_std_debug ius-debug ius-std ius-std-debug\
   questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
   vcs vcs_debug vcs_std\
-  clean starting finished sha1 version notify it
+  clean starting finished sha1 info notify it nil
 
 DFLT        := help
 
@@ -356,8 +361,11 @@ sha1:
 	@echo "INFO: Sha1 sums -"
 	@for f in ${SRCS}; do echo "  $$f `git hash-object $$f`"; done
 
-version:
-	@echo "INFO: UVM version: $(UVM_VER)$(UVM_SUB_VER)"
+info:
+	@echo "INFO: LOGFILE=$(LOGFILE)"
+	@echo "INFO: RUN=$(RUN)"
+	@echo "INFO: Simulator: $(SIMULATOR)"
+	@echo "INFO: UVM version: $(UVM)"
 
 %.so: %.cpp
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -lrt -shared -g -o $@ $<
@@ -367,56 +375,56 @@ version:
 	./$@
 
 #-------------------------------------------------------------------------------
-ius: sha1 version $(DPI_LIBS)
+ius: sha1 info $(DPI_LIBS)
 	$(IRUN) $(IUS_OPTS) -uvmhome $(IUS_HOME)/tools/$(UVM_VER) $(INCDIRS) $(SRCS) $(EXTRA_IUS_RUNOPTS)
 
 
 ius-debug: ius_debug
-ius_debug: sha1 version $(DPI_LIBS)
+ius_debug: sha1 info $(DPI_LIBS)
 	$(IRUN) $(IUS_OPTS) -uvmhome $(IUS_HOME)/tools/$(UVM_VER) $(INCDIRS) $(SRCS) +access+rwc -gui $(EXTRA_IUS_RUNOPTS)
 
 ius-std: ius_std
-ius_std: sha1 version $(DPI_LIBS)
-	@$(MAKE) starting
+ius_std: sha1 info $(DPI_LIBS)
+	@$(MAKE) -f ${MAKEFILE_RULES} starting
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(IRUN) $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -sv_lib uvm_dpi -loadpli $(IUS_PLILIB) $(EXTRA_IUS_RUNOPTS)
-	@$(MAKE) finished
+	@$(MAKE) -f ${MAKEFILE_RULES} finished
 
 ius-std-debug: ius_std_debug
-ius_std_debug: sha1 version $(DPI_LIBS)
+ius_std_debug: sha1 info $(DPI_LIBS)
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(IRUN) -uvmnoautocompile $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) +access+rwc -gui -sv_lib uvm_dpi  -loadpli $(IUS_PLILIB) $(EXTRA_IUS_RUNOPTS)
 
 #-------------------------------------------------------------------------------
-questa: sha1 version $(DPI_LIBS)
+questa: sha1 info $(DPI_LIBS)
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS)+$(QUESTA_HOME)/verilog_src/uvm-$(UVM_VER)$(UVM_SUB_VER)/src $(SRCS) -R -sv_lib $(QUESTA_LIBS) $(EXTRA_QUESTA_RUNOPTS)
 
 questa-debug: questa_debug
-questa_debug: sha1 version $(DPI_LIBS)
+questa_debug: sha1 info $(DPI_LIBS)
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS)+$(QUESTA_HOME)/verilog_src/uvm-$(UVM_VER)$(UVM_SUB_VER)/src $(SRCS) -R -sv_lib $(QUESTA_LIBS) -gui $(EXTRA_QUESTA_RUNOPTS)
 
 questa-std: questa_std
-questa_std: sha1 version $(DPI_LIBS)
-	@$(MAKE) starting
+questa_std: sha1 info $(DPI_LIBS)
+	@$(MAKE) -f ${MAKEFILE_RULES} starting
 	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi $(EXTRA_QUESTA_RUNOPTS)
-	@$(MAKE) finished
+	@$(MAKE) -f ${MAKEFILE_RULES} finished
 
 questa-std-debug: questa_std_debug
-questa_std_debug: sha1 version $(DPI_LIBS)
+questa_std_debug: sha1 info $(DPI_LIBS)
 	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi -gui $(EXTRA_QUESTA_RUNOPTS)
 
 #-------------------------------------------------------------------------------
-vcs: sha1 version $(DPI_LIBS)
+vcs: sha1 info $(DPI_LIBS)
 	$(VCS) $(VCS_OPTS) -ntb_opts uvm $(INCDIRS) $(SRCS) -R $(EXTRA_VCS_RUNOPTS)
 
 vcs-debug: vcs_debug
-vcs_debug: sha1 version $(DPI_LIBS)
+vcs_debug: sha1 info $(DPI_LIBS)
 	$(VCS) $(VCS_OPTS) -ntb_opts uvm $(INCDIRS) $(SRCS) -R -gui $(EXTRA_VCS_RUNOPTS)
 
 vcs-std: vcs_std
-vcs_std: sha1 version $(DPI_LIBS)
+vcs_std: sha1 info $(DPI_LIBS)
 	@$(MAKE) starting
 	$(VCS) $(VCS_OPTS) +acc +vpi $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) \
 	$(UVM_HOME)/src/dpi/uvm_dpi.cc -CFLAGS -DVCS -R $(EXTRA_VCS_RUNOPTS)
@@ -430,7 +438,7 @@ clean:
 	urgReport cov_work *.so vc_hdrs.h
 
 help:
-	@perldoc Makefile
+	@perldoc ${MAKEFILE_ORIG}
 
 rules:
 	@perldoc ${MAKEFILE_RULES}
@@ -438,5 +446,9 @@ rules:
 it:
 	bin/doit ${ARGS}
 	@$(MAKE) notify
+
+# For testing
+nil:
+	@echo -n ""
 
 #TAF!
