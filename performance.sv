@@ -6,6 +6,7 @@
   `define USE_HDW
 `endif
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // DESCRIPTION:
 //   This code is designed to test relative runtime performance of various UVM
 //   versions, implementations, and associated simulators.
@@ -47,6 +48,8 @@
 // +uvm_set_config_string=*,messages,NUMBER specifies if info messages to be enabled (0)
 // +uvm_set_config_string=*,tr_len,HEX specifies transaction lengths in nybbles
 // +uvm_set_config_string=*,warnings,NUMBER specifies if warning messages to be enabled (0)
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // The following affect the static design
 `ifndef CLOCK_PERIOD
@@ -480,7 +483,6 @@ package Performance_pkg;
   task My_driver_t::run_phase(uvm_phase phase);
     string obj_name = $sformatf("driver[%0d]",m_id);
     if (s_first_id == 0) s_first_id = m_id;
-    #0; //< Make sure other processes get to setup before first objection
     if (m_object) phase.raise_objection(this, "Raise to get off zero");
     #1; // Get off zero
     if (m_object) phase.drop_objection(this, "Drop and wait to start");
@@ -780,7 +782,7 @@ package Performance_pkg;
     endfunction
     //--------------------------------------------------------------------------
     extern function void build_phase(uvm_phase phase);
-    extern task run_phase(uvm_phase phase);
+    extern function void phase_started(uvm_phase phase);
     extern task reset_phase(uvm_phase phase);
     extern task main_phase(uvm_phase phase);
     extern task shutdown_phase(uvm_phase phase);
@@ -792,6 +794,18 @@ package Performance_pkg;
 `endif /*MY_TEST_SVH*/
 //IFile: my_test.sv
 //Include: my_test.svh
+  //----------------------------------------------------------------------------
+  function void My_test_t::phase_started(uvm_phase phase);
+    uvm_task_phase task_phase;
+    if ($cast(task_phase,phase)) begin
+      uvm_objection objection;
+      objection = phase.get_objection();
+      `ifdef UVM_POST_VERSION_1_1
+      objection.set_propagate_mode(m_propagate);
+      `endif
+      objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
+    end
+  endfunction
   //----------------------------------------------------------------------------
   function void My_test_t::build_phase(uvm_phase phase);
     longint  count          = 1e6; //< default
@@ -916,16 +930,6 @@ package Performance_pkg;
   endtask : My_test_t::reset_phase
 
   //----------------------------------------------------------------------------
-  task My_test_t::run_phase(uvm_phase phase);
-    uvm_objection objection;
-    objection = phase.get_objection();
-    `ifdef UVM_POST_VERSION_1_1
-    objection.set_propagate_mode(m_propagate);
-    `endif
-    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
-  endtask : My_test_t::run_phase
-
-  //----------------------------------------------------------------------------
   task My_test_t::main_phase(uvm_phase phase);
     longint  count;
     longint  switching;
@@ -939,9 +943,6 @@ package Performance_pkg;
     longint  messages = 0;
     longint  warnings = 0;
     uvm_component seqrs[$];
-    uvm_objection objection;
-    objection = phase.get_objection();
-    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
     uvm_top.set_timeout(1000ms);
     uvm_top.find_all("*m_sequencer*", seqrs);
     assert(uvm_config_db#(longint)  ::get(this, "", "count",       count));
@@ -959,9 +960,6 @@ package Performance_pkg;
     assert(agents   >= 1);
     assert(messages >= 0);
     assert(warnings >= 0);
-    `ifdef UVM_POST_VERSION_1_1
-    objection.set_propagate_mode(m_propagate);
-    `endif
     // Create brief string describing the features used
     if (use_seq == 0)     m_features = {m_features, "; short-seq"}; else m_features = {m_features, "; long-seq"};
     if (bfm_object == 0)  m_features = {m_features, "; no-bfm-objections"}; else m_features = {m_features, "; bfm-objections"};
@@ -972,7 +970,6 @@ package Performance_pkg;
     if (switching == 0)   m_features = {m_features, "; limited-switching"};
     if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
     if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
-    #0; //< Make sure other processes get to setup before first objection
     phase.raise_objection(this, "raising to allow setup"); // allow setup
     m_starting_event = m_global_event_pool.get("starting");
     #2ps; // get ahead of drivers and monitors
@@ -1026,10 +1023,6 @@ package Performance_pkg;
   endtask : My_test_t::main_phase
   //--------------------------------------------------------------------------
   task My_test_t::shutdown_phase(uvm_phase phase);
-    uvm_objection objection;
-    objection = phase.get_objection();
-    objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
-    #0; //< Make sure other processes get to setup before first objection
     phase.raise_objection(this, "raising to extend driver time"); // simulate sequence start
     g_measured_objections++;
     #(10*`CLOCK_PERIOD);
