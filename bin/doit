@@ -201,6 +201,9 @@ exit 0
 ################################################################################
 # CODE
 #-------------------------------------------------------------------------------
+set -o ignoreeof
+errors=0
+export errors
 export TAG
 not_really=0
 export obj_trace
@@ -215,6 +218,7 @@ function Split() {
 }
 
 function Analyze_performance() {
+  # Pull in arguments
   local RUN=${1} VENDOR=${2} VERS=${3}
   shift; shift; shift
   local var val
@@ -226,6 +230,15 @@ function Analyze_performance() {
       eval "$var=$val"
     fi
   done
+  # Remap vendor as needed
+  case "$VENDOR" in # Legal simulator target prefixes
+    aldec|riviera          ) VENDOR="aldec"  ;;
+    cadence|ius|incisive   ) VENDOR="ius"    ;;
+    mentor|questa|modelsim ) VENDOR="questa" ;;
+    synopsys|vcs           ) VENDOR="vcs"    ;;
+    *) echo "ERROR: Invalid vendor/simulator '$VENDOR' specified -- skipping"; let errors++; return ;;
+  esac
+  # Interpret arguments
   o=
   if [[ "$obj_trace" == 1 ]]; then
     o="o=+UVM_OBJECTION_TRACE"
@@ -370,7 +383,7 @@ function Doit() {
   VERSIONS=$(Uniq $VERSIONS)
   VENDORS=
   for V in $(Split $VENDOR); do
-    case "$V" in # Legal simulator target prefixes
+    case "$(echo $V|tr A-Z a-z)" in # Legal simulator target prefixes
       aldec|riviera          ) VENDORS="$VENDORS aldec"           ;;
       cadence|ius|incisive   ) VENDORS="$VENDORS ius"             ;;
       mentor|questa|modelsim ) VENDORS="$VENDORS questa"          ;;
@@ -385,6 +398,8 @@ function Doit() {
   let run=1
   let first=1
   if [[ $not_really == 0 && $script_file != "" ]]; then
+    source $script_file
+  elif [[ $not_really == 1 && $script_file != "" ]]; then
     source $script_file
   else
     for V in $(Split $VENDORS); do
@@ -442,6 +457,8 @@ function Doit() {
       done
     done
   fi
+
+  if [[ $errors != 0 ]]; then echo "WARNING: Detected at least $errors errors."; fi
 
   echo "------------------------------------------------------------------------------"
   echo "INFO: Don't forget to clean-up simulator temporaries..."
