@@ -797,7 +797,7 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   function void My_test_t::phase_started(uvm_phase phase);
     uvm_task_phase task_phase;
-    if ($cast(task_phase,phase)) begin
+    if ($cast(task_phase,phase.get_imp())) begin
       uvm_objection objection;
       objection = phase.get_objection();
       `ifdef UVM_POST_VERSION_1_1
