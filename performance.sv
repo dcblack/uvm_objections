@@ -187,7 +187,6 @@ module Design ( input reset, input clock
       busy(`BUSY);
     end
   end : BEHAVIOR
-endmodule : Design
   `ifdef HDW_NOISE
   // Generate lots of data to show operation (normally off)
   initial begin
