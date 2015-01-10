@@ -157,7 +157,7 @@ endinterface : My_intf
 //
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
-// NOTE: Uses typedef Data_t; otherwise, normal HDW style design
+// NOTE: Uses typedef Data_t; otherwise, this is normal Verilog, but NOT RTL
 //
 // Description:
 //   A change in data or reset results in the respective operation which is
@@ -176,7 +176,7 @@ module Design ( input reset, input clock
     repeat (cycles) @(posedge clock);
     is_busy <= 0;
   endtask : busy
-  always @(data or reset) begin : FF
+  always @(data or reset) begin : BEHAVIOR // NOT RTL
     #1ps;
     @(posedge clock);
     if (reset) begin
@@ -186,7 +186,8 @@ module Design ( input reset, input clock
       result <= #((`BUSY-1)*`CLOCK_PERIOD) result ^ data; // Propagation delay
       busy(`BUSY);
     end
-  end : FF
+  end : BEHAVIOR
+endmodule : Design
   `ifdef HDW_NOISE
   // Generate lots of data to show operation (normally off)
   initial begin
@@ -521,8 +522,8 @@ package Performance_pkg;
           m_vif.data  <= 0;
           @(negedge m_vif.is_busy); // Wait for design to become ready
           `endif
-        end //repeat
-      end //if
+        end//repeat
+      end//if
       if (m_object) phase.drop_objection(this, $sformatf("%s end transmit",obj_name));
     end//forever
   endtask : My_driver_t::run_phase
@@ -795,6 +796,7 @@ package Performance_pkg;
 //IFile: my_test.sv
 //Include: my_test.svh
   //----------------------------------------------------------------------------
+  // Set drain-time and propagation mode for all run-time (task based) phases
   function void My_test_t::phase_started(uvm_phase phase);
     uvm_task_phase task_phase;
     if ($cast(task_phase,phase.get_imp())) begin
@@ -810,7 +812,7 @@ package Performance_pkg;
   function void My_test_t::build_phase(uvm_phase phase);
     longint  count          = 1e6; //< default
     longint  switching      = 1;   //< default
-    bit      use_seq        = 1;   //< default
+    int      use_seq        = 1;   //< default
     bit      use_monitor    = 1;   //< default
     bit      bfm_object     = 1;   //< default
     shortint levels         = 2;   //< default
@@ -894,7 +896,7 @@ package Performance_pkg;
     `uvm_info("build_phase",$sformatf("bfm_object=%0d", bfm_object), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
-    uvm_config_db#(bit)::set(uvm_top, "*", "use_seq", use_seq);
+    uvm_config_db#(int)::set(uvm_top, "*", "use_seq", use_seq);
     `uvm_info("build_phase",$sformatf("use_seq=%0d", use_seq), UVM_NONE)
 
     // Transaction-length specified in HEX to distinguish the nybbles
@@ -936,7 +938,7 @@ package Performance_pkg;
     time     delay;
     tr_len_t tr_len;
     shortint agents;
-    bit      use_seq = 1;
+    int      use_seq = 1;
     bit      bfm_object = 1;
     bit      shape = SHAPE_WIDE;
     bit      use_monitor = 1;
@@ -946,7 +948,7 @@ package Performance_pkg;
     uvm_top.set_timeout(1000ms);
     uvm_top.find_all("*m_sequencer*", seqrs);
     assert(uvm_config_db#(longint)  ::get(this, "", "count",       count));
-    assert(uvm_config_db#(bit     ) ::get(this, "", "use_seq",     use_seq));
+    assert(uvm_config_db#(int     ) ::get(this, "", "use_seq",     use_seq));
     assert(uvm_config_db#(bit     ) ::get(this, "", "bfm_object",  bfm_object));
     void' (uvm_config_db#(shape_t ) ::get(this, "", "shape",       shape));
     assert(uvm_config_db#(bit     ) ::get(this, "", "use_monitor", use_monitor));
@@ -991,7 +993,7 @@ package Performance_pkg;
     m_wall_starting_time = get_wall_time();
     phase.raise_objection(this, "raising to start top sequence"); // simulate sequence start
     g_measured_objections++;
-    begin
+    if (use_seq == 1) begin
       foreach (seqrs[i]) begin
         My_sequencer_t seqr;
         My_agent_t agent;
@@ -1017,6 +1019,16 @@ package Performance_pkg;
       end
       wait fork;
       `uvm_info("main_phase","All forked processes completed", UVM_NONE)
+    end else begin // Don't run a normal sequence
+      repeat (count) begin
+        phase.raise_objection(this, "raising");
+        #(`BUSY*`CLOCK_PERIOD);
+        if (messages > 0) begin
+          `uvm_info("run_phase",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
+          --messages;
+        end
+        phase.drop_objection(this, "lowering");
+      end//repeat
     end
     phase.drop_objection(this, "lowering at end of top sequence"); // simulate sequence done
     #1ps;
