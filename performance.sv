@@ -312,11 +312,11 @@ package Performance_pkg;
     function new(string name="");
       super.new(name);
       s_count++;
-    endfunction
+    endfunction : new
     //--------------------------------------------------------------------------
     function string convert2string;
       return $sformatf("{R=%s D=%0h}",m_reset,m_data);
-    endfunction
+    endfunction : convert2string
     //--------------------------------------------------------------------------
     constraint reset_constraint { m_reset dist { 0 := 99, 1 := 1 }; }
     //--------------------------------------------------------------------------
@@ -379,7 +379,7 @@ package Performance_pkg;
     // Constructor
     function new(string name="");
       super.new(name);
-    endfunction
+    endfunction : new
     //--------------------------------------------------------------------------
     extern task pre_start;
     extern task body;
@@ -533,7 +533,7 @@ package Performance_pkg;
   endtask : My_driver_t::run_phase
   //----------------------------------------------------------------------------
   function void My_driver_t::phase_ready_to_end(uvm_phase phase);
-    if ( phase.is(uvm_run_phase::get() && m_busy) begin
+    if ( phase.is(uvm_run_phase::get()) && m_busy) begin
       phase.raise_objection(this , "Extending driver's run_phase" );
       g_extended++;
       fork begin
@@ -565,12 +565,13 @@ package Performance_pkg;
     // Class member data
     uvm_event_pool  m_global_event_pool;
     uvm_event       m_starting_event;
-    bit             m_monitor  = 1;
-    bit             m_bfm_objects   = 1;
-    longint         m_count    = 0;
-    longint         m_warnings = 0;
-    shortint        m_id       = 0;
-    static shortint s_first_id = 0;
+    bit             m_monitor     = 1;
+    bit             m_bfm_objects = 1;
+    longint         m_count       = 0;
+    longint         m_warnings    = 0;
+    shortint        m_id          = 0;
+    bit             m_busy        = 0;
+    static shortint s_first_id    = 0;
     virtual My_intf m_vif;
     //--------------------------------------------------------------------------
     // Constructor
@@ -581,6 +582,7 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     extern function void connect_phase(uvm_phase phase);
     extern task run_phase(uvm_phase phase);
+    extern function void phase_ready_to_end(uvm_phase phase);
     //--------------------------------------------------------------------------
   endclass : My_monitor_t
 
@@ -631,7 +633,7 @@ package Performance_pkg;
   endtask : My_monitor_t::run_phase
   //----------------------------------------------------------------------------
   function void My_monitor_t::phase_ready_to_end(uvm_phase phase);
-    if ( phase.is(uvm_run_phase::get() && m_busy) begin
+    if ( phase.is(uvm_run_phase::get()) && m_busy) begin
       phase.raise_objection(this , "Extending monitor's run_phase" );
       g_extended++;
       fork begin
@@ -808,7 +810,7 @@ package Performance_pkg;
     function new(string name, uvm_component parent);
       super.new(name, parent);
       m_global_event_pool = uvm_event_pool::get_global_pool();
-    endfunction
+    endfunction : new
     //--------------------------------------------------------------------------
     extern function void build_phase(uvm_phase phase);
     extern function void phase_started(uvm_phase phase);
@@ -835,7 +837,7 @@ package Performance_pkg;
       `endif
       objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
     end
-  endfunction
+  endfunction : My_test_t::phase_started
   //----------------------------------------------------------------------------
   function void My_test_t::build_phase(uvm_phase phase);
     longint  count          = 1e6; //< default
