@@ -251,7 +251,7 @@ function Analyze_performance() {
   fi
   local clean='clean'
   local LOG="$RUN-$VERS"
-  LOG="$LOG-"
+  LOG="$LOG-C$(perl -e '$s=sprintf(qq{%1.1g},$ARGV[0]);$s=~s/[+]0*//;print $s;' $C)"
   local t
   t=$(echo "P=$P;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "U=$U;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
