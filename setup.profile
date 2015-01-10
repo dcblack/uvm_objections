@@ -12,7 +12,8 @@ if [[ "$MODULESHOME" != "" ]]; then
   done
 fi
 
-# Add local ./bin to PATH unless it is already specified
-if perl -e 'exit ($ENV{PATH} =~ m{^[.]/bin:})?1:0;' ; then
-  PATH=./bin:"$PATH"
+# Add full pathname of local ./bin to PATH unless it is already specified
+DOTBIN="$(perl -MCwd'(abs_path)' -le 'print &abs_path(q{./bin})')"
+if perl -e 'exit ($ENV{PATH} =~ m{^'"$DOTBIN"':})?1:0;' ; then
+  PATH=$DOTBIN:"$PATH"
 fi
