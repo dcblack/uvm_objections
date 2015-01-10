@@ -88,7 +88,7 @@ for my $filename (sort {-C $a <=> -C $b} @ARGV) {
   $basename =~ s{.*/}{};
   #$basename = '"'.$basename.'"';
   my ($line, $launch, $simfinish, $starting, $finished, $transactions, $objected, $elapsed, $wall);
-  my ($run, $vendor, $version, $iterations, $propagate) = (0, $UN, $UN, $UN, $UN);
+  my ($run, $vendor, $version, $iterations, $propagate) = (0, $UN, $UN, $UN, 0);
   my ($tr_len, $switching, $use_monitor, $shape, $count, $bfm_object, $use_seq, $levels, $agents, $messages, $warnings) ;
   $simfinish=$NA;
   $transactions = $NA;
