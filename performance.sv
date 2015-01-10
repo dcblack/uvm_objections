@@ -300,8 +300,8 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     // Class member data
     static longint g_count = 0;
-    rand bit     m_reset = 0;
-    rand integer m_data  = 'hDEADBEEF;
+    rand bit       m_reset = 0;
+    rand integer   m_data  = 'hDEADBEEF;
     `uvm_object_utils_begin(My_transaction_t)
       `uvm_field_int(m_reset, UVM_DEFAULT)
       `uvm_field_int(m_data,  UVM_DEFAULT)
@@ -447,7 +447,7 @@ package Performance_pkg;
     uvm_event_pool  m_global_event_pool;
     uvm_event       m_starting_event;
     virtual My_intf m_vif;
-    bit             m_object   = 1;
+    bit             m_bfm_objects   = 1;
     longint         m_count    = 0;
     longint         m_messages = 0;
     shortint        m_id       = 0;
@@ -473,7 +473,7 @@ package Performance_pkg;
   function void My_driver_t::connect_phase(uvm_phase phase);
     `uvm_info("connect_phase", "Created driver", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
-    assert(uvm_config_db#(bit)     ::get(this, "", "bfm_object", m_object));
+    assert(uvm_config_db#(bit)     ::get(this, "", "bfm_object", m_bfm_objects));
     assert(uvm_config_db#(longint) ::get(this, "", "messages",   m_messages));
     assert(uvm_config_db#(longint) ::get(this, "", "switching",  m_switching));
     assert(uvm_config_db#(tr_len_t)::get(this, "", "tr_len",     m_tr_len));
@@ -483,10 +483,10 @@ package Performance_pkg;
   task My_driver_t::run_phase(uvm_phase phase);
     string obj_name = $sformatf("driver[%0d]",m_id);
     if (s_first_id == 0) s_first_id = m_id;
-    if (m_object) phase.raise_objection(this, "Raise to get off zero");
+    if (m_bfm_objects) phase.raise_objection(this, "Raise to get off zero");
     #1; // Get off zero
-    if (m_object) phase.drop_objection(this, "Drop and wait to start");
-    if (!m_object) g_measured_objections += m_count/m_tr_len;
+    if (m_bfm_objects) phase.drop_objection(this, "Drop and wait to start");
+    if (!m_bfm_objects) g_measured_objections += m_count/m_tr_len;
     m_starting_event.wait_trigger();
     //////////////////////////////////////////////////////////////////////////
     //
@@ -500,9 +500,9 @@ package Performance_pkg;
     //
     //////////////////////////////////////////////////////////////////////////
     if (m_switching == 0) #1ps; // no context-switching
-    forever begin
+    forever begin : DRIVING
       seq_item_port.get(req);
-      if (m_object) begin
+      if (m_bfm_objects) begin
         phase.raise_objection(this, $sformatf("%s begin transmit",obj_name));
         g_measured_objections++;
       end
@@ -523,7 +523,7 @@ package Performance_pkg;
           `endif
         end//repeat
       end//if
-      if (m_object) phase.drop_objection(this, $sformatf("%s end transmit",obj_name));
+      if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end transmit",obj_name));
     end//forever
   endtask : My_driver_t::run_phase
   //----------------------------------------------------------------------------
@@ -550,7 +550,7 @@ package Performance_pkg;
     uvm_event_pool  m_global_event_pool;
     uvm_event       m_starting_event;
     bit             m_monitor  = 1;
-    bit             m_object   = 1;
+    bit             m_bfm_objects   = 1;
     longint         m_count    = 0;
     longint         m_warnings = 0;
     shortint        m_id       = 0;
@@ -576,7 +576,7 @@ package Performance_pkg;
     `uvm_info("connect_phase", "Created monitor", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
     assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_monitor));
-    assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_object));
+    assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_bfm_objects));
     assert(uvm_config_db#(longint)::get(this, "", "warnings",    m_warnings));
   endfunction : My_monitor_t::connect_phase
   //----------------------------------------------------------------------------
@@ -596,9 +596,9 @@ package Performance_pkg;
     //
     //////////////////////////////////////////////////////////////////////////
     if (m_monitor) begin
-      forever begin
+      forever begin : MONITORING
         @(posedge m_vif.is_busy);
-        if (m_object) begin
+        if (m_bfm_objects) begin
           phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
           g_measured_objections++;
         end
@@ -607,7 +607,7 @@ package Performance_pkg;
           --m_warnings;
         end
         @(negedge m_vif.is_busy);
-        if (m_object) phase.drop_objection(this, $sformatf("%s end observation",obj_name));
+        if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end observation",obj_name));
       end//repeat
     end
   endtask : My_monitor_t::run_phase
@@ -957,7 +957,7 @@ package Performance_pkg;
     assert(uvm_config_db#(longint)  ::get(this, "", "messages",    messages));
     assert(uvm_config_db#(longint)  ::get(this, "", "warnings",    warnings));
     // just in case
-    assert(count    >= 10);
+    assert(count    >= 0);
     assert(agents   >= 1);
     assert(messages >= 0);
     assert(warnings >= 0);
@@ -1023,7 +1023,7 @@ package Performance_pkg;
         phase.raise_objection(this, "raising");
         #(`BUSY*`CLOCK_PERIOD);
         if (messages > 0) begin
-          `uvm_info("run_phase",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
+          `uvm_info("run_phase","DUMMY data",UVM_MEDIUM)
           --messages;
         end
         phase.drop_objection(this, "lowering");
