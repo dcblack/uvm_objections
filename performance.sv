@@ -272,7 +272,8 @@ package Performance_pkg;
   const shape_t SHAPE_WIDE=0, SHAPE_NARROW=1;
 
   longint unsigned g_measured_objections = 0;
-  shortint g_next_id = 0;
+  shortint unsigned g_extended = 0;
+  shortint unsigned g_next_id = 0;
 
   function automatic void bound_tr_len(ref tr_len_t tr_len, input shortint id);
       tr_len = (tr_len >> (4*id)) & 'hF;
@@ -299,7 +300,7 @@ package Performance_pkg;
     // FUTURE: Measure field automation macros
     //--------------------------------------------------------------------------
     // Class member data
-    static longint g_count = 0;
+    static longint s_count = 0;
     rand bit       m_reset = 0;
     rand integer   m_data  = 'hDEADBEEF;
     `uvm_object_utils_begin(My_transaction_t)
@@ -310,7 +311,7 @@ package Performance_pkg;
     // Constructor
     function new(string name="");
       super.new(name);
-      g_count++;
+      s_count++;
     endfunction
     //--------------------------------------------------------------------------
     function string convert2string;
@@ -446,12 +447,13 @@ package Performance_pkg;
     // Class member data
     uvm_event_pool  m_global_event_pool;
     uvm_event       m_starting_event;
+    static shortint s_first_id    = 0;
     virtual My_intf m_vif;
-    bit             m_bfm_objects   = 1;
-    longint         m_count    = 0;
-    longint         m_messages = 0;
-    shortint        m_id       = 0;
-    static shortint s_first_id = 0;
+    bit             m_bfm_objects = 1;
+    longint         m_count       = 0;
+    longint         m_messages    = 0;
+    shortint        m_id          = 0;
+    bit             m_busy        = 0;
     longint         m_switching;
     tr_len_t        m_tr_len;
     //--------------------------------------------------------------------------
@@ -463,6 +465,7 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     extern function void connect_phase(uvm_phase phase);
     extern task run_phase(uvm_phase phase);
+    extern function void phase_ready_to_end(uvm_phase phase);
     //--------------------------------------------------------------------------
   endclass : My_driver_t
 
@@ -502,6 +505,7 @@ package Performance_pkg;
     if (m_switching == 0) #1ps; // no context-switching
     forever begin : DRIVING
       seq_item_port.get(req);
+      m_busy = 1;
       if (m_bfm_objects) begin
         phase.raise_objection(this, $sformatf("%s begin transmit",obj_name));
         g_measured_objections++;
@@ -524,8 +528,20 @@ package Performance_pkg;
         end//repeat
       end//if
       if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end transmit",obj_name));
+      m_busy = 0;
     end//forever
   endtask : My_driver_t::run_phase
+  //----------------------------------------------------------------------------
+  function void My_driver_t::phase_ready_to_end(uvm_phase phase);
+    if ( phase.is(uvm_run_phase::get() && m_busy) begin
+      phase.raise_objection(this , "Extending driver's run_phase" );
+      g_extended++;
+      fork begin
+        wait(m_busy == 0);
+        phase.drop_objection(this , "Driver's extension succeeded");
+      end join_none
+    end
+  endfunction : My_driver_t::phase_ready_to_end
   //----------------------------------------------------------------------------
 
 //EOF: my_driver.sv
@@ -598,6 +614,7 @@ package Performance_pkg;
     if (m_monitor) begin
       forever begin : MONITORING
         @(posedge m_vif.is_busy);
+        m_busy = 1;
         if (m_bfm_objects) begin
           phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
           g_measured_objections++;
@@ -608,9 +625,21 @@ package Performance_pkg;
         end
         @(negedge m_vif.is_busy);
         if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end observation",obj_name));
+        m_busy = 0;
       end//repeat
     end
   endtask : My_monitor_t::run_phase
+  //----------------------------------------------------------------------------
+  function void My_monitor_t::phase_ready_to_end(uvm_phase phase);
+    if ( phase.is(uvm_run_phase::get() && m_busy) begin
+      phase.raise_objection(this , "Extending monitor's run_phase" );
+      g_extended++;
+      fork begin
+        wait(m_busy == 0);
+        phase.drop_objection(this , "Monitor's extension succeeded");
+      end join_none
+    end
+  endfunction : My_monitor_t::phase_ready_to_end
   //----------------------------------------------------------------------------
 
 //EOF: my_monitor.sv
@@ -1052,7 +1081,8 @@ package Performance_pkg;
     sep1 = {"\n",sep1, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
-    `uvm_info("report_phase", $sformatf("%s%s transactions created", sep1, formatn(My_transaction_t::g_count)), UVM_NONE)
+    `uvm_info("report_phase", $sformatf("%s%s transactions created", sep1, formatn(My_transaction_t::s_count)), UVM_NONE)
+    `uvm_info("report_phase", $sformatf("Extended objections: %d", g_extended), UVM_NONE)
     `uvm_info("report_phase", $sformatf("CPU  starting time: %f", m_cpu_starting_time), UVM_NONE)
     `uvm_info("report_phase", $sformatf("CPU  finished time: %f", m_cpu_finished_time), UVM_NONE)
     `uvm_info("report_phase", $sformatf("Wall starting time: %f", m_wall_starting_time), UVM_NONE)
