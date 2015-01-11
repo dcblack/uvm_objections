@@ -230,6 +230,8 @@ function Analyze_performance() {
       eval "$var=$val"
     fi
   done
+  # RUN should be 3 digits with leading zeroes to allow better file sorting
+  RUN=$(perl -le '$a=$ARGV[0];$a=~s/\d+/$;/;$n=$&;$n=sprintf("%03d",$n);$a=~s/$;/$n/;print $a;' $RUN)
   # Remap vendor as needed
   case "$VENDOR" in # Legal simulator target prefixes
     aldec|riviera          ) VENDOR="aldec"  ;;
