@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
       istringstream strin(arg);
       unsigned int temp = bits;
       strin >> temp;
-      if (temp > 1 && temp <= 32) {
+      if (temp > 1 && temp <= 64) {
         bits = temp;
       }
     } else if (arg == "-h") {
