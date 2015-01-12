@@ -410,7 +410,7 @@ package Performance_pkg;
     if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance","Unable to randomize reset transaction")
     finish_item(req);
     `endif
-    repeat (m_reps) begin
+    repeat (m_reps-1/*account for reset*/) begin
       `ifdef USE_DO
       `uvm_do(req)
       `else
@@ -533,11 +533,11 @@ package Performance_pkg;
   endtask : My_driver_t::run_phase
   //----------------------------------------------------------------------------
   function void My_driver_t::phase_ready_to_end(uvm_phase phase);
-    if ( phase.is(uvm_run_phase::get()) && m_busy) begin
+    if ( phase.is(uvm_run_phase::get()) && (m_busy == 1)) begin
       phase.raise_objection(this , "Extending driver's run_phase" );
-      g_extended++;
+      g_extended++; //< monitor how many times this is called
       fork begin
-        wait(m_busy == 0);
+        wait(m_busy == 0); //< possibly add timeout
         phase.drop_objection(this , "Driver's extension succeeded");
       end join_none
     end
@@ -565,9 +565,8 @@ package Performance_pkg;
     // Class member data
     uvm_event_pool  m_global_event_pool;
     uvm_event       m_starting_event;
-    bit             m_monitor     = 1;
+    bit             m_use_monitor = 1;
     bit             m_bfm_objects = 1;
-    longint         m_count       = 0;
     longint         m_warnings    = 0;
     shortint        m_id          = 0;
     bit             m_busy        = 0;
@@ -593,7 +592,7 @@ package Performance_pkg;
   function void My_monitor_t::connect_phase(uvm_phase phase);
     `uvm_info("connect_phase", "Created monitor", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
-    assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_monitor));
+    assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_use_monitor));
     assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_bfm_objects));
     assert(uvm_config_db#(longint)::get(this, "", "warnings",    m_warnings));
   endfunction : My_monitor_t::connect_phase
@@ -613,7 +612,7 @@ package Performance_pkg;
     //   ####     #    #     # #    #    #
     //
     //////////////////////////////////////////////////////////////////////////
-    if (m_monitor) begin
+    if (m_use_monitor) begin
       forever begin : MONITORING
         @(posedge m_vif.is_busy);
         m_busy = 1;
@@ -635,7 +634,7 @@ package Performance_pkg;
   function void My_monitor_t::phase_ready_to_end(uvm_phase phase);
     if ( phase.is(uvm_run_phase::get()) && m_busy) begin
       phase.raise_objection(this , "Extending monitor's run_phase" );
-      g_extended++;
+      g_extended++; //< monitor how many times this is called
       fork begin
         wait(m_busy == 0);
         phase.drop_objection(this , "Monitor's extension succeeded");
