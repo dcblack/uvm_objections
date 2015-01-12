@@ -5,19 +5,38 @@
 `ifndef USE_HDW
   `define USE_HDW
 `endif
+`ifndef USE_FIELD_MACROS
+  `define USE_FIELD_MACROS
+`endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION:
+// DESCRIPTION
+//
 //   This code is designed to test relative runtime performance of various UVM
 //   versions, implementations, and associated simulators.
 //
+// LICENSE
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 // Code formatting conventions used:
-//   1. All modules, interfaces, packages, and classes have capitalized names.
+//   1. All modules, interfaces, packages, and classes use word capitalization (e.g. Design)
 //      Classes furthermore have an _t suffix to indicate they represent a data type.
 //   2. Member data other than ports use m_ prefix.
 //   3. Global variables use g_ prefix.
-//   4. Typedefs and classes use _t suffix.
-//   5. First letter of class is uppercase. Separate words within with underscores.
+//   4. Static variables use s_ prefix.
+//   5. Typedefs and classes use _t suffix.
+//   6. First letter of class is uppercase. Separate words within with underscores.
 //
 // This file combines what would normally be a multiple files into one; however, file
 // boundaries have been marked with specially setup comments:
@@ -85,28 +104,28 @@ module Elaborate;
   timeprecision 1ps;
   //----------------------------------------------------------------------------
   initial begin
-    $display("HDW_INFO: CLOCK_PERIOD=%0t",`CLOCK_PERIOD);
-    $display("HDW_INFO: BUSY=%0d",`BUSY);
-    $display("HDW_INFO: BITS=%0d",`BITS);
+    $display("HDW_INFO CLOCK_PERIOD=%0t",`CLOCK_PERIOD);
+    $display("HDW_INFO BUSY=%0d",`BUSY);
+    $display("HDW_INFO BITS=%0d",`BITS);
     `ifdef USE_HDW
-    $display("HDW_INFO: USE_HDW defined");
+    $display("HDW_INFO USE_HDW defined");
     `else
-    $display("HDW_INFO: No using HDW");
+    $display("HDW_INFO No using HDW");
     `endif
     `ifdef USE_CLOCKING
-    $display("HDW_INFO: USE_CLOCKING defined");
+    $display("HDW_INFO USE_CLOCKING defined");
     `else
-    $display("HDW_INFO: No using clocking block");
+    $display("HDW_INFO No using clocking block");
     `endif
-    `ifdef USE_DO
-    $display("HDW_INFO: USE_DO defined enable use of uvm_do macros");
+    `ifdef USE_FIELD_MACROS
+    $display("HDW_INFO USE_FIELD_MACROS defined to enable use of field automation macros");
     `else
-    $display("HDW_INFO: No uvm_do macros");
+    $display("HDW_INFO No field macros");
     `endif
     `ifdef HDW_NOISE
-    $display("HDW_INFO: HDW_NOISE defined to show initial %0d clocks of HDW activity",`HDW_NOISE);
+    $display("HDW_INFO HDW_NOISE defined to show initial %0d clocks of HDW activity",`HDW_NOISE);
     `else
-    $display("HDW_INFO: HDW silent");
+    $display("HDW_INFO HDW silent");
     `endif
   end
 endmodule
@@ -190,11 +209,11 @@ module Design ( input reset, input clock
   `ifdef HDW_NOISE
   // Generate lots of data to show operation (normally off)
   initial begin
-    $display("HDW: reset clock is_busy data result");
-    $monitor("HDW: %t %b %b %b %h %h",$time,reset,clock,is_busy,data,result);
+    $display("HDW_INFO reset clock is_busy data result");
+    $monitor("HDW_INFO %t %b %b %b %h %h",$time,reset,clock,is_busy,data,result);
     repeat (`HDW_NOISE) @(posedge clock);
     $monitoroff;
-    $display("HDW: end of noise");
+    $display("HDW_INFO end of noise");
   end
   `endif
 endmodule : Design
@@ -303,10 +322,14 @@ package Performance_pkg;
     static longint s_count = 0;
     rand bit       m_reset = 0;
     rand integer   m_data  = 'hDEADBEEF;
+    `ifdef USE_FIELD_MACROS
     `uvm_object_utils_begin(My_transaction_t)
       `uvm_field_int(m_reset, UVM_DEFAULT)
       `uvm_field_int(m_data,  UVM_DEFAULT)
     `uvm_object_utils_end
+    `else
+    `uvm_object_utils(My_transaction_t)
+    `endif
     //--------------------------------------------------------------------------
     // Constructor
     function new(string name="");
@@ -320,6 +343,9 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     constraint reset_constraint { m_reset dist { 0 := 99, 1 := 1 }; }
     //--------------------------------------------------------------------------
+    `ifndef USE_FIELD_MACROS
+    //FUTURE: define do_copy and do_compare
+    `endif
   endclass : My_transaction_t
 
 `endif /*MY_TRANSACTION_SVH*/
@@ -372,6 +398,7 @@ package Performance_pkg;
     // Class member data
     shortint m_level  = -1;
     shortint m_id     = -1;
+    bit      m_use_do = 0;
     tr_len_t m_tr_len = 1;
     longint  m_count  = 0;
     longint  m_reps;
@@ -395,6 +422,7 @@ package Performance_pkg;
     assert(m_id >= 0);
     assert(uvm_config_db#(longint) ::get(p_sequencer, "", "count",  m_count));
     assert(uvm_config_db#(tr_len_t)::get(p_sequencer, "", "tr_len", m_tr_len));
+    void' (uvm_config_db#(tr_len_t)::get(p_sequencer, "", "use_do", m_use_do));
     bound_tr_len(m_tr_len, m_id);
     m_reps = m_count/m_tr_len;
     `uvm_info("DEBUG",$sformatf("Starting %0d.%0d for %0d repetitions", m_level, m_id, m_reps), UVM_DEBUG)
@@ -402,23 +430,23 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   task My_sequence_t::body;
     // Perform a simple reset when starting
-    `ifdef USE_DO
-    `uvm_do_with(req,{m_reset == 1;})
-    `else
-    req = My_transaction_t::type_id::create("req");
-    start_item(req);
-    if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance","Unable to randomize reset transaction")
-    finish_item(req);
-    `endif
-    repeat (m_reps-1/*account for reset*/) begin
-      `ifdef USE_DO
-      `uvm_do(req)
-      `else
+    if (use_do) begin
+      `uvm_do_with(req,{m_reset == 1;})
+    end else begin
       req = My_transaction_t::type_id::create("req");
       start_item(req);
-      if (!req.randomize()) `uvm_error("Performance","Unable to randomize reset transaction")
+      if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance","Unable to randomize reset transaction")
       finish_item(req);
-      `endif
+    end//if
+    repeat (m_reps-1/*account for reset*/) begin
+      if (use_do) begin
+        `uvm_do(req)
+      end else begin
+        req = My_transaction_t::type_id::create("req");
+        start_item(req);
+        if (!req.randomize()) `uvm_error("Performance","Unable to randomize reset transaction")
+        finish_item(req);
+      end//if
     end
   endtask : My_sequence_t::body
   //----------------------------------------------------------------------------
