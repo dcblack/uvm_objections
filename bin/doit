@@ -319,7 +319,7 @@ function Doit() {
   if [[ "$LEVELS"    = "" ]]; then LEVELS="4 32"     ; fi
   if [[ "$AGENTS"    = "" ]]; then AGENTS="2 5"      ; fi
   if [[ "$COUNTS"    = "" ]]; then COUNTS="21000000" ; fi
-  if [[ "$INFOS"     = "" ]]; then INFOS="0 9000"    ; fi
+  if [[ "$INFOS"     = "" ]]; then INFOS="0 900000"  ; fi
   if [[ "$WARNINGS"  = "" ]]; then WARNINGS="0 5"    ; fi
   if [[ "$PROPAGATE" = "" ]]; then PROPAGATE="1"     ; fi
   if [[ "$TR_LEN"    = "" ]]; then TR_LEN="0 1241"   ; fi
