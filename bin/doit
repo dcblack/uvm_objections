@@ -209,10 +209,17 @@ not_really=0
 export obj_trace
 script_file=""
 
+# Display a horizontal separator
+function Sep() {
+  echo $(perl -le 'printf qq{%s},$ARGV[0] x $ARGV[1]' "$1" "$2")
+}
+
+# Return only unique command-line elements
 function Uniq() {
   perl -le 'for$r(@ARGV){next if exists $u{$r};push@r,$r;$u{$r}=1;}print"@r";' $@
 }
 
+# Split a comma/whitespace separated list
 function Split() {
   perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
 }
@@ -277,8 +284,9 @@ function Analyze_performance() {
   LOG="$LOG$TAG"
   export LOGFILE="$LOG.txt"
   if [[ $not_really == 0 ]]; then
-    bin/header "$LOG"
-    echo "------------------------------------------------------------------------------"
+    Sep - 120
+    bin/header -uc "$VENDOR-$RUN"
+    Sep - 120
     echo "Analyze_performance ${RUN} ${VENDOR} ${VERS} $*"                                                    | tee    $LOG.txt
     echo "env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
           env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
@@ -462,9 +470,9 @@ function Doit() {
 
   if [[ $errors != 0 ]]; then echo "WARNING: Detected at least $errors errors."; fi
 
-  echo "------------------------------------------------------------------------------"
+  Sep - 120
   echo "INFO: Don't forget to clean-up simulator temporaries..."
-  echo "------------------------------------------------------------------------------"
+  Sep - 120
   echo ""
 } #end Doit
 
