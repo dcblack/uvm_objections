@@ -335,9 +335,10 @@ DEFAULT: $(DFLT)
 
 CXXFLAGS:=-D$(SIMULATOR) $(addprefix -D,$(DEFS)) -I$(UVM_HOME)/src
 
-SEP0:="--------------------------------------------------------------------------------"
-SEP1:="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
-SEP2:="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+Sep=$(shell perl -le 'printf qq{"%s"},q{$1} x 120')
+SEP0:=$(call Sep,\#)
+SEP1:=$(call Sep,V)
+SEP2:=$(call Sep,A)
 
 HOSTNAME:=$(shell hostname)
 notify:
