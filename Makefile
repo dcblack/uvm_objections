@@ -44,7 +44,7 @@ ifdef P
   RUN_OPTS+='+uvm_set_config_int=*,propagate,$P' 
 endif
 ifdef S
-  RUN_OPTS+='+uvm_set_config_int=*,shape,$S' 
+  RUN_OPTS+='+uvm_set_config_string=*,shape,$S' 
 endif
 ifdef X
   RUN_OPTS+='+uvm_set_config_string=*,switching,$X' 
