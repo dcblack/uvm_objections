@@ -209,10 +209,17 @@ not_really=0
 export obj_trace
 script_file=""
 
+# Display a horizontal separator
+function Sep() {
+  echo $(perl -le 'printf qq{%s},$ARGV[0] x $ARGV[1]' "$1" "$2")
+}
+
+# Return only unique command-line elements
 function Uniq() {
   perl -le 'for$r(@ARGV){next if exists $u{$r};push@r,$r;$u{$r}=1;}print"@r";' $@
 }
 
+# Split a comma/whitespace separated list
 function Split() {
   perl -le '$r=qq{@ARGV};$r=~s{,}{ }g;$r=~s{  +}{ }g;$r=~s{^ }{};$r=~s{ $}{};print qq{$r}' $@
 }
@@ -230,6 +237,7 @@ function Analyze_performance() {
       eval "$var=$val"
     fi
   done
+  local RUNORIG="$RUN"
   # RUN should be 3 digits with leading zeroes to allow better file sorting
   RUN=$(perl -le '$a=$ARGV[0];$a=~s/\d+/$;/;$n=$&;$n=sprintf("%03d",$n);$a=~s/$;/$n/;print $a;' $RUN)
   # Remap vendor as needed
@@ -259,7 +267,7 @@ function Analyze_performance() {
   t=$(echo "U=$U;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "R=$R;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "X=$X;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
-  t=$(echo "S=$S;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
+  t=$(echo "S=$S;"|perl -pe 's/=;/0/;s/=//;s/;//;s/SHAPE_WIDE/0/;s/SHAPE_NARROW/1/'); LOG="$LOG$t"
   t=$(echo "B=$B;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "M=$M;"|perl -pe 's/=;/0/;s/=//;s/;//'); LOG="$LOG$t"
   t=$(echo "I=$I%"|perl -pe 's/=//;s/([I])([1-9])%/${1}0${2}%/;s/%//'); LOG="$LOG$t"
@@ -277,8 +285,9 @@ function Analyze_performance() {
   LOG="$LOG$TAG"
   export LOGFILE="$LOG.txt"
   if [[ $not_really == 0 ]]; then
-    bin/header "$LOG"
-    echo "------------------------------------------------------------------------------"
+    Sep - 120
+    bin/header -uc "$VENDOR-$RUNORIG"
+    Sep - 120
     echo "Analyze_performance ${RUN} ${VENDOR} ${VERS} $*"                                                    | tee    $LOG.txt
     echo "env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
           env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
@@ -462,9 +471,9 @@ function Doit() {
 
   if [[ $errors != 0 ]]; then echo "WARNING: Detected at least $errors errors."; fi
 
-  echo "------------------------------------------------------------------------------"
+  Sep - 120
   echo "INFO: Don't forget to clean-up simulator temporaries..."
-  echo "------------------------------------------------------------------------------"
+  Sep - 120
   echo ""
 } #end Doit
 

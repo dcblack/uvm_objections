@@ -182,10 +182,10 @@ endif
 
 FINDBIN = $(firstword $(wildcard $(addsuffix /$1,/bin /usr/bin)))
 STD_FLAGS   := -fPIC
-START_DIR   := ${shell pwd}
+START_DIR   := ${shell /bin/pwd}
 SHELL       := /bin/sh
-MKDIR       := mkdir
-RM          := rm -rf
+MKDIR       := /bin/mkdir
+RM          := /bin/rm -rf
 FIND        := $(firstword $(wildcard /bin /usr/bin/find))
             
 ifndef UVM_HOME
@@ -335,9 +335,10 @@ DEFAULT: $(DFLT)
 
 CXXFLAGS:=-D$(SIMULATOR) $(addprefix -D,$(DEFS)) -I$(UVM_HOME)/src
 
-SEP0:="--------------------------------------------------------------------------------"
-SEP1:="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
-SEP2:="^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+Sep=$(shell perl -le 'printf qq{"%s"},q{$1} x 120')
+SEP0:=$(call Sep,\#)
+SEP1:=$(call Sep,V)
+SEP2:=$(call Sep,A)
 
 HOSTNAME:=$(shell hostname)
 notify:
@@ -434,8 +435,8 @@ vcs_std: sha1 info $(DPI_LIBS)
 clean:
 	@echo Cleaning old simulation files and libraries...
 	@ -$(RM) INCA_libs csrc simv* work vlog.opt *.bak *.log .simvision ncsim* *.vpd transcript \
-	waves.shm *.wlf mylib lib DVEfiles ucli.key irun.key modelsim.ini *.vstf .restart* \
-	urgReport cov_work *.so vc_hdrs.h
+	         waves.shm *.wlf mylib lib DVEfiles ucli.key irun.key modelsim.ini *.vstf .restart* \
+	         urgReport cov_work *.so vc_hdrs.h
 
 help:
 	@perldoc ${MAKEFILE_ORIG}

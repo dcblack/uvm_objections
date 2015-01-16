@@ -5,19 +5,38 @@
 `ifndef USE_HDW
   `define USE_HDW
 `endif
+`ifndef USE_FIELD_MACROS
+  `define USE_FIELD_MACROS
+`endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION:
+// DESCRIPTION
+//
 //   This code is designed to test relative runtime performance of various UVM
 //   versions, implementations, and associated simulators.
 //
+// LICENSE
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 // Code formatting conventions used:
-//   1. All modules, interfaces, packages, and classes have capitalized names.
+//   1. All modules, interfaces, packages, and classes use word capitalization (e.g. Design)
 //      Classes furthermore have an _t suffix to indicate they represent a data type.
 //   2. Member data other than ports use m_ prefix.
 //   3. Global variables use g_ prefix.
-//   4. Typedefs and classes use _t suffix.
-//   5. First letter of class is uppercase. Separate words within with underscores.
+//   4. Static variables use s_ prefix.
+//   5. Typedefs and classes use _t suffix.
+//   6. First letter of class is uppercase. Separate words within with underscores.
 //
 // This file combines what would normally be a multiple files into one; however, file
 // boundaries have been marked with specially setup comments:
@@ -85,28 +104,28 @@ module Elaborate;
   timeprecision 1ps;
   //----------------------------------------------------------------------------
   initial begin
-    $display("HDW_INFO: CLOCK_PERIOD=%0t",`CLOCK_PERIOD);
-    $display("HDW_INFO: BUSY=%0d",`BUSY);
-    $display("HDW_INFO: BITS=%0d",`BITS);
+    $display("HDW_INFO CLOCK_PERIOD=%0t",`CLOCK_PERIOD);
+    $display("HDW_INFO BUSY=%0d",`BUSY);
+    $display("HDW_INFO BITS=%0d",`BITS);
     `ifdef USE_HDW
-    $display("HDW_INFO: USE_HDW defined");
+    $display("HDW_INFO USE_HDW defined");
     `else
-    $display("HDW_INFO: No using HDW");
+    $display("HDW_INFO No using HDW");
     `endif
     `ifdef USE_CLOCKING
-    $display("HDW_INFO: USE_CLOCKING defined");
+    $display("HDW_INFO USE_CLOCKING defined");
     `else
-    $display("HDW_INFO: No using clocking block");
+    $display("HDW_INFO No using clocking block");
     `endif
-    `ifdef USE_DO
-    $display("HDW_INFO: USE_DO defined enable use of uvm_do macros");
+    `ifdef USE_FIELD_MACROS
+    $display("HDW_INFO USE_FIELD_MACROS defined to enable use of field automation macros");
     `else
-    $display("HDW_INFO: No uvm_do macros");
+    $display("HDW_INFO No field macros");
     `endif
     `ifdef HDW_NOISE
-    $display("HDW_INFO: HDW_NOISE defined to show initial %0d clocks of HDW activity",`HDW_NOISE);
+    $display("HDW_INFO HDW_NOISE defined to show initial %0d clocks of HDW activity",`HDW_NOISE);
     `else
-    $display("HDW_INFO: HDW silent");
+    $display("HDW_INFO HDW silent");
     `endif
   end
 endmodule
@@ -190,11 +209,11 @@ module Design ( input reset, input clock
   `ifdef HDW_NOISE
   // Generate lots of data to show operation (normally off)
   initial begin
-    $display("HDW: reset clock is_busy data result");
-    $monitor("HDW: %t %b %b %b %h %h",$time,reset,clock,is_busy,data,result);
+    $display("HDW_INFO reset clock is_busy data result");
+    $monitor("HDW_INFO %t %b %b %b %h %h",$time,reset,clock,is_busy,data,result);
     repeat (`HDW_NOISE) @(posedge clock);
     $monitoroff;
-    $display("HDW: end of noise");
+    $display("HDW_INFO end of noise");
   end
   `endif
 endmodule : Design
@@ -260,16 +279,27 @@ package Performance_pkg;
   // Convenience strings to make output more distinct in the log file.
   string SEP1 = {122{"#"}};
   string SEP2 = {120{"="}};
+  string SEP3 = {120{"v"}};
+  string SEP4 = {120{"^"}};
+  string SEP5 = {120{"-"}};
+  string SEP6 = {120{"%"}};
 
   `ifdef UVM_POST_VERSION_1_1
   typedef uvm_integral_t integral_t;
   `else
   typedef uvm_bitstream_t integral_t;
   `endif
+  `ifdef UVM_POST_VERSION_1_1
+  typedef class My_transaction_t;
+  typedef uvm_event                    my_event_t;
+  typedef uvm_event_pool               my_event_pool_t;
+  `else
+  typedef uvm_event                    my_event_t;
+  typedef uvm_event_pool               my_event_pool_t;
+  `endif
   typedef integral_t tr_len_t;
-  //typedef enum bit { SHAPE_WIDE, SHAPE_NARROW } shape_t;
-  typedef shortint shape_t;
-  const shape_t SHAPE_WIDE=0, SHAPE_NARROW=1;
+  typedef enum bit { SHAPE_WIDE, SHAPE_NARROW } shape_t;
+  typedef class My_env_t;
 
   longint unsigned g_measured_objections = 0;
   shortint unsigned g_extended = 0;
@@ -303,10 +333,14 @@ package Performance_pkg;
     static longint s_count = 0;
     rand bit       m_reset = 0;
     rand integer   m_data  = 'hDEADBEEF;
+    `ifdef USE_FIELD_MACROS
     `uvm_object_utils_begin(My_transaction_t)
       `uvm_field_int(m_reset, UVM_DEFAULT)
       `uvm_field_int(m_data,  UVM_DEFAULT)
     `uvm_object_utils_end
+    `else
+    `uvm_object_utils(My_transaction_t)
+    `endif
     //--------------------------------------------------------------------------
     // Constructor
     function new(string name="");
@@ -320,6 +354,9 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     constraint reset_constraint { m_reset dist { 0 := 99, 1 := 1 }; }
     //--------------------------------------------------------------------------
+    `ifndef USE_FIELD_MACROS
+    //FUTURE: define do_copy and do_compare
+    `endif
   endclass : My_transaction_t
 
 `endif /*MY_TRANSACTION_SVH*/
@@ -372,6 +409,7 @@ package Performance_pkg;
     // Class member data
     shortint m_level  = -1;
     shortint m_id     = -1;
+    bit      m_use_do = 0;
     tr_len_t m_tr_len = 1;
     longint  m_count  = 0;
     longint  m_reps;
@@ -395,6 +433,7 @@ package Performance_pkg;
     assert(m_id >= 0);
     assert(uvm_config_db#(longint) ::get(p_sequencer, "", "count",  m_count));
     assert(uvm_config_db#(tr_len_t)::get(p_sequencer, "", "tr_len", m_tr_len));
+    void' (uvm_config_db#(bit)     ::get(p_sequencer, "", "use_do", m_use_do));
     bound_tr_len(m_tr_len, m_id);
     m_reps = m_count/m_tr_len;
     `uvm_info("DEBUG",$sformatf("Starting %0d.%0d for %0d repetitions", m_level, m_id, m_reps), UVM_DEBUG)
@@ -402,23 +441,23 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   task My_sequence_t::body;
     // Perform a simple reset when starting
-    `ifdef USE_DO
-    `uvm_do_with(req,{m_reset == 1;})
-    `else
-    req = My_transaction_t::type_id::create("req");
-    start_item(req);
-    if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance","Unable to randomize reset transaction")
-    finish_item(req);
-    `endif
-    repeat (m_reps) begin
-      `ifdef USE_DO
-      `uvm_do(req)
-      `else
+    if (m_use_do) begin
+      `uvm_do_with(req,{m_reset == 1;})
+    end else begin
       req = My_transaction_t::type_id::create("req");
       start_item(req);
-      if (!req.randomize()) `uvm_error("Performance","Unable to randomize reset transaction")
+      if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance","Unable to randomize reset transaction")
       finish_item(req);
-      `endif
+    end//if
+    repeat (m_reps-1/*account for reset*/) begin
+      if (m_use_do) begin
+        `uvm_do(req)
+      end else begin
+        req = My_transaction_t::type_id::create("req");
+        start_item(req);
+        if (!req.randomize()) `uvm_error("Performance","Unable to randomize reset transaction")
+        finish_item(req);
+      end//if
     end
   endtask : My_sequence_t::body
   //----------------------------------------------------------------------------
@@ -445,13 +484,11 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     `uvm_component_utils(My_driver_t)
     // Class member data
-    uvm_event_pool  m_global_event_pool;
-    uvm_event       m_starting_event;
-    static shortint s_first_id    = 0;
+    my_event_pool_t m_global_event_pool;
+    my_event_t      m_starting_event;
     virtual My_intf m_vif;
     bit             m_bfm_objects = 1;
     longint         m_count       = 0;
-    longint         m_messages    = 0;
     shortint        m_id          = 0;
     bit             m_busy        = 0;
     longint         m_switching;
@@ -460,7 +497,7 @@ package Performance_pkg;
     // Constructor
     function new(string name, uvm_component parent);
       super.new(name, parent);
-      m_global_event_pool = uvm_event_pool::get_global_pool();
+      m_global_event_pool = my_event_pool_t::get_global_pool();
     endfunction : new
     //--------------------------------------------------------------------------
     extern function void connect_phase(uvm_phase phase);
@@ -477,7 +514,6 @@ package Performance_pkg;
     `uvm_info("connect_phase", "Created driver", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
     assert(uvm_config_db#(bit)     ::get(this, "", "bfm_object", m_bfm_objects));
-    assert(uvm_config_db#(longint) ::get(this, "", "messages",   m_messages));
     assert(uvm_config_db#(longint) ::get(this, "", "switching",  m_switching));
     assert(uvm_config_db#(tr_len_t)::get(this, "", "tr_len",     m_tr_len));
     bound_tr_len(m_tr_len, m_id);
@@ -485,7 +521,6 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   task My_driver_t::run_phase(uvm_phase phase);
     string obj_name = $sformatf("driver[%0d]",m_id);
-    if (s_first_id == 0) s_first_id = m_id;
     if (m_bfm_objects) phase.raise_objection(this, "Raise to get off zero");
     #1; // Get off zero
     if (m_bfm_objects) phase.drop_objection(this, "Drop and wait to start");
@@ -513,9 +548,9 @@ package Performance_pkg;
       if (m_switching == 1) begin // normal context switching
         repeat (m_tr_len) begin
           #1ps;
-          if (m_id == s_first_id && m_messages > 0) begin
+          if (My_env_t::s_messages > 0) begin
             `uvm_info("run_phase",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
-            --m_messages;
+            --My_env_t::s_messages;
           end
           `ifdef USE_HDW
           m_vif.reset <= req.m_reset;
@@ -533,11 +568,11 @@ package Performance_pkg;
   endtask : My_driver_t::run_phase
   //----------------------------------------------------------------------------
   function void My_driver_t::phase_ready_to_end(uvm_phase phase);
-    if ( phase.is(uvm_run_phase::get()) && m_busy) begin
+    if ( phase.is(uvm_run_phase::get()) && (m_busy == 1)) begin
       phase.raise_objection(this , "Extending driver's run_phase" );
-      g_extended++;
+      g_extended++; //< monitor how many times this is called
       fork begin
-        wait(m_busy == 0);
+        wait(m_busy == 0); //< possibly add timeout
         phase.drop_objection(this , "Driver's extension succeeded");
       end join_none
     end
@@ -563,21 +598,18 @@ package Performance_pkg;
     //--------------------------------------------------------------------------
     `uvm_component_utils(My_monitor_t)
     // Class member data
-    uvm_event_pool  m_global_event_pool;
-    uvm_event       m_starting_event;
-    bit             m_monitor     = 1;
+    my_event_pool_t m_global_event_pool;
+    my_event_t      m_starting_event;
+    bit             m_use_monitor = 1;
     bit             m_bfm_objects = 1;
-    longint         m_count       = 0;
-    longint         m_warnings    = 0;
     shortint        m_id          = 0;
     bit             m_busy        = 0;
-    static shortint s_first_id    = 0;
     virtual My_intf m_vif;
     //--------------------------------------------------------------------------
     // Constructor
     function new(string name, uvm_component parent);
       super.new(name, parent);
-      m_global_event_pool = uvm_event_pool::get_global_pool();
+      m_global_event_pool = my_event_pool_t::get_global_pool();
     endfunction : new
     //--------------------------------------------------------------------------
     extern function void connect_phase(uvm_phase phase);
@@ -593,14 +625,12 @@ package Performance_pkg;
   function void My_monitor_t::connect_phase(uvm_phase phase);
     `uvm_info("connect_phase", "Created monitor", UVM_NONE)
     m_starting_event = m_global_event_pool.get("starting");
-    assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_monitor));
+    assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_use_monitor));
     assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_bfm_objects));
-    assert(uvm_config_db#(longint)::get(this, "", "warnings",    m_warnings));
   endfunction : My_monitor_t::connect_phase
   //----------------------------------------------------------------------------
   task My_monitor_t::run_phase(uvm_phase phase);
     string   obj_name = $sformatf("monitor[%0d]",m_id);
-    if (s_first_id == 0) s_first_id = m_id;
     m_starting_event.wait_trigger();
     //////////////////////////////////////////////////////////////////////////
     //
@@ -613,7 +643,7 @@ package Performance_pkg;
     //   ####     #    #     # #    #    #
     //
     //////////////////////////////////////////////////////////////////////////
-    if (m_monitor) begin
+    if (m_use_monitor) begin
       forever begin : MONITORING
         @(posedge m_vif.is_busy);
         m_busy = 1;
@@ -621,9 +651,9 @@ package Performance_pkg;
           phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
           g_measured_objections++;
         end
-        if (m_id == s_first_id && m_warnings > 0) begin
+        if (My_env_t::s_warnings > 0) begin
           `uvm_warning("Driver","<warn>")
-          --m_warnings;
+          --My_env_t::s_warnings;
         end
         @(negedge m_vif.is_busy);
         if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end observation",obj_name));
@@ -635,7 +665,7 @@ package Performance_pkg;
   function void My_monitor_t::phase_ready_to_end(uvm_phase phase);
     if ( phase.is(uvm_run_phase::get()) && m_busy) begin
       phase.raise_objection(this , "Extending monitor's run_phase" );
-      g_extended++;
+      g_extended++; //< monitor how many times this is called
       fork begin
         wait(m_busy == 0);
         phase.drop_objection(this , "Monitor's extension succeeded");
@@ -722,6 +752,9 @@ package Performance_pkg;
   class My_env_t extends uvm_env;
     //--------------------------------------------------------------------------
     `uvm_component_utils(My_env_t)
+    // Class static data
+    static longint unsigned s_messages = 0;
+    static longint unsigned s_warnings = 0;
     // Class member data
     shortint   m_level = -1; // invalid
     shortint   m_id    = -1; // invalid
@@ -735,6 +768,7 @@ package Performance_pkg;
     endfunction : new
     //--------------------------------------------------------------------------
     extern function void build_phase(uvm_phase phase);
+    extern function void connect_phase(uvm_phase phase);
     //--------------------------------------------------------------------------
   endclass : My_env_t
 
@@ -755,8 +789,8 @@ package Performance_pkg;
     if ($cast(parent,get_parent())) begin
       m_level = parent.m_level - 1;
     end
-    `uvm_info("DEBUG",$sformatf("env.id=%0d agents/width=%0d shape=%0d level=%0d", m_id, width, m_shape,m_level), UVM_DEBUG)
-    if (parent == null) begin
+    `uvm_info("DEBUG",$sformatf("env.id=%0d agents/width=%0d shape=%s level=%0d", m_id, width, m_shape.name, m_level), UVM_DEBUG)
+    if (m_level > 0 && parent == null) begin
       // Build the width
       if (m_shape == SHAPE_NARROW) width = 1;
       inst_nm = $sformatf("uvc_T%0d",m_level);
@@ -769,7 +803,7 @@ package Performance_pkg;
       m_uvc = new[1];
       m_uvc[0] = My_env_t::type_id::create(inst_nm,this);
     end else begin // Bottom
-      if (m_shape == SHAPE_WIDE) width = 1;
+      if (parent != null && m_shape == SHAPE_WIDE) width = 1;
       m_agent = new[width];
       for (shortint unsigned i=0; i!=width; i++) begin
         m_agent[i] = My_agent_t::type_id::create($sformatf("m_agent[%0d]", g_next_id+i),this);
@@ -777,6 +811,11 @@ package Performance_pkg;
       end
     end
   endfunction : My_env_t::build_phase
+  //----------------------------------------------------------------------------
+  function void My_env_t::connect_phase(uvm_phase phase);
+    assert(uvm_config_db#(longint) ::get(this, "", "messages", s_messages));
+    assert(uvm_config_db#(longint) ::get(this, "", "warnings", s_warnings));
+  endfunction : My_env_t::connect_phase
   //----------------------------------------------------------------------------
 
 //EOF: my_env.sv
@@ -799,8 +838,8 @@ package Performance_pkg;
     `uvm_component_utils(My_test_t)
     // Class member data
     My_env_t         m_env;
-    uvm_event_pool   m_global_event_pool;
-    uvm_event        m_starting_event;
+    my_event_pool_t  m_global_event_pool;
+    my_event_t       m_starting_event;
     real             m_cpu_starting_time,  m_cpu_finished_time;
     real             m_wall_starting_time, m_wall_finished_time;
     bit              m_propagate = 1; //< default old way
@@ -809,14 +848,13 @@ package Performance_pkg;
     // Constructor
     function new(string name, uvm_component parent);
       super.new(name, parent);
-      m_global_event_pool = uvm_event_pool::get_global_pool();
+      m_global_event_pool = my_event_pool_t::get_global_pool();
     endfunction : new
     //--------------------------------------------------------------------------
     extern function void build_phase(uvm_phase phase);
     extern function void phase_started(uvm_phase phase);
     extern task reset_phase(uvm_phase phase);
     extern task main_phase(uvm_phase phase);
-    extern task shutdown_phase(uvm_phase phase);
     extern function void extract_phase(uvm_phase phase);
     extern function void report_phase(uvm_phase phase);
     //--------------------------------------------------------------------------
@@ -840,9 +878,14 @@ package Performance_pkg;
   endfunction : My_test_t::phase_started
   //----------------------------------------------------------------------------
   function void My_test_t::build_phase(uvm_phase phase);
+    `ifdef UVM_POST_VERSION_1_1
+    typedef uvm_enum_wrapper#(shape_t) shape_wrapper_t;
+    `else
+    `endif
     longint  count          = 1e6; //< default
     longint  switching      = 1;   //< default
     int      use_seq        = 1;   //< default
+    bit      use_do         = 0;   //< default
     bit      use_monitor    = 1;   //< default
     bit      bfm_object     = 1;   //< default
     shortint levels         = 2;   //< default
@@ -871,14 +914,24 @@ package Performance_pkg;
     `uvm_info("build_phase",$sformatf("levels=%0d",levels), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "agents", agents)); //<allow from command-line
-    uvm_config_db#(shortint)::set(uvm_top, "*", "agents", agents);
     if (agents <=0) begin
       `uvm_warning("build_phase",$sformatf("Detected agents <= 0 (%d); forcing to 1.",agents))
       agents = 1;
     end
+    uvm_config_db#(shortint)::set(uvm_top, "*", "agents", agents);
     `uvm_info("build_phase",$sformatf("agents=%0d",agents), UVM_NONE)
 
-    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "shape", shape)); //<allow from command-line
+    void'(uvm_config_db#(string)::get(this, "", "shape", tempstr)); //<allow from command-line
+    if      (tempstr == "0") shape = shape_t'(0);
+    else if (tempstr == "1") shape = shape_t'(1);
+    `ifdef UVM_POST_VERSION_1_1
+    else assert(shape_wrapper_t::from_name(tempstr, shape))
+         else `uvm_error("build_phase",$sformatf("Illegal shape enum: '%s' from command-line", tempstr))
+    `else
+    else if (tempstr == "SHAPE_WIDE")   shape = SHAPE_WIDE;
+    else if (tempstr == "SHAPE_NARROW") shape = SHAPE_NARROW;
+    else `uvm_error("build_phase",$sformatf("Illegal shape enum: '%s' from command-line", tempstr))
+    `endif
     uvm_config_db#(shape_t)::set(uvm_top, "*", "shape", shape);
     `uvm_info("build_phase",$sformatf("shape=%0d",shape), UVM_NONE)
 
@@ -925,6 +978,10 @@ package Performance_pkg;
     uvm_config_db#(bit)::set(uvm_top, "*", "bfm_object", bfm_object);
     `uvm_info("build_phase",$sformatf("bfm_object=%0d", bfm_object), UVM_NONE)
 
+    void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_do", use_do)); //<allow from command-line
+    uvm_config_db#(bit)::set(uvm_top, "*", "use_do", use_do);
+    `uvm_info("build_phase",$sformatf("use_do=%0d", use_do), UVM_NONE)
+
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
     uvm_config_db#(int)::set(uvm_top, "*", "use_seq", use_seq);
     `uvm_info("build_phase",$sformatf("use_seq=%0d", use_seq), UVM_NONE)
@@ -958,7 +1015,7 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::reset_phase(uvm_phase phase);
-    `uvm_info("build_phase",$sformatf("\n%s\nRUNNING\n%s", SEP1, SEP2), UVM_NONE)
+    `uvm_info("build_phase",$sformatf("\n%s\nPREPARING\n%s", SEP1, SEP2), UVM_NONE)
   endtask : My_test_t::reset_phase
 
   //----------------------------------------------------------------------------
@@ -970,7 +1027,7 @@ package Performance_pkg;
     shortint agents;
     int      use_seq = 1;
     bit      bfm_object = 1;
-    bit      shape = SHAPE_WIDE;
+    shape_t  shape = SHAPE_WIDE;
     bit      use_monitor = 1;
     longint  messages = 0;
     longint  warnings = 0;
@@ -993,15 +1050,15 @@ package Performance_pkg;
     assert(messages >= 0);
     assert(warnings >= 0);
     // Create brief string describing the features used
-    if (use_seq == 0)     m_features = {m_features, "; short-seq"}; else m_features = {m_features, "; long-seq"};
-    if (bfm_object == 0)  m_features = {m_features, "; no-bfm-objections"}; else m_features = {m_features, "; bfm-objections"};
-    if (shape == 0)       m_features = {m_features, "; wide"}; else m_features = {m_features, "; narrow"};
-    if (use_monitor == 0) m_features = {m_features, "; no-monitor"}; else m_features = {m_features, "; monitor"};
-    if (tr_len != 0)      m_features = {m_features, $sformatf("; tr%0X", tr_len)};
-    if (m_propagate == 0) m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
-    if (switching == 0)   m_features = {m_features, "; limited-switching"};
-    if (messages != 0)    m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
-    if (warnings != 0)    m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
+    if (use_seq == 0)        m_features = {m_features, "; short-seq"}; else m_features = {m_features, "; long-seq"};
+    if (bfm_object == 0)     m_features = {m_features, "; no-bfm-objections"}; else m_features = {m_features, "; bfm-objections"};
+    if (shape == SHAPE_WIDE) m_features = {m_features, "; wide"}; else m_features = {m_features, "; narrow"};
+    if (use_monitor == 0)    m_features = {m_features, "; no-monitor"}; else m_features = {m_features, "; monitor"};
+    if (tr_len != 0)         m_features = {m_features, $sformatf("; tr%0X", tr_len)};
+    if (m_propagate == 0)    m_features = {m_features, "; non-prop"}; else m_features = {m_features, "; propagate"};
+    if (switching == 0)      m_features = {m_features, "; limited-switching"};
+    if (messages != 0)       m_features = {m_features, $sformatf("; Info%0d", messages)}; else m_features = {m_features, "; No runtime-info"};
+    if (warnings != 0)       m_features = {m_features, $sformatf("; Warn%0d", warnings)}; else m_features = {m_features, "; No warnings"};
     phase.raise_objection(this, "raising to allow setup"); // allow setup
     m_starting_event = m_global_event_pool.get("starting");
     #2ps; // get ahead of drivers and monitors
@@ -1018,6 +1075,7 @@ package Performance_pkg;
     //   ####     #    #     # #    #    #
     //
     //////////////////////////////////////////////////////////////////////////
+    `uvm_info("main_phase",$sformatf("\n%s\nRUNNING\n%s", SEP2, SEP3), UVM_NONE)
     m_starting_event.trigger();
     m_cpu_starting_time  = get_cpu_time();
     m_wall_starting_time = get_wall_time();
@@ -1048,7 +1106,6 @@ package Performance_pkg;
         #1;
       end
       wait fork;
-      `uvm_info("main_phase","All forked processes completed", UVM_NONE)
     end else begin // Don't run a normal sequence
       repeat (count) begin
         phase.raise_objection(this, "raising");
@@ -1064,23 +1121,16 @@ package Performance_pkg;
     #1ps;
   endtask : My_test_t::main_phase
   //--------------------------------------------------------------------------
-  task My_test_t::shutdown_phase(uvm_phase phase);
-    phase.raise_objection(this, "raising to extend driver time"); // simulate sequence start
-    g_measured_objections++;
-    #(10*`CLOCK_PERIOD);
-    phase.drop_objection(this, "lowering to end extension"); // simulate sequence done
-  endtask : My_test_t::shutdown_phase
-  //--------------------------------------------------------------------------
   function void My_test_t::extract_phase(uvm_phase phase);
     m_cpu_finished_time  = get_cpu_time();
     m_wall_finished_time = get_wall_time();
+    `uvm_info("main_phase",$sformatf("\n%s\nENDING\n%s", SEP4, SEP5), UVM_NONE)
   endfunction : My_test_t::extract_phase
   //--------------------------------------------------------------------------
   function void My_test_t::report_phase(uvm_phase phase);
     longint cpu_ms, wall_ms;
     string sep1;
-    sep1 = {80{"%"}};
-    sep1 = {"\n",sep1, "\n"};
+    sep1 = {"\n",SEP6, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
     `uvm_info("report_phase", $sformatf("%s%s transactions created", sep1, formatn(My_transaction_t::s_count)), UVM_NONE)
