@@ -1,0 +1,62 @@
+#!make -f mkf
+#
+# A stand-alone makefile for some quick targets used during development
+# useful to the author.
+
+-include ${HOME}/.makefile
+
+CORE:=performance.sv
+
+ifndef DIR
+DIR:=synopsys
+$(warn DIR=${DIR} (default))
+else
+$(info INFO: DIR=${DIR})
+endif
+
+.PHONY: default push pull diff commit changes tar env extract
+
+default: env
+
+changes:
+	. setup.profile; touch -r ${CORE} .${CORE};\
+	  unfixends performance.sv; git changes; fixends performance.sv;\
+	  touch -r .${CORE} ${CORE}; rm .${CORE};
+
+commit:
+	. setup.profile; touch -r ${CORE} .${CORE};\
+	  unfixends performance.sv; git commit ${ARGS}; fixends performance.sv;\
+	  touch -r .${CORE} ${CORE}; rm .${CORE};
+
+diff:
+	. setup.profile; touch -r ${CORE} .${CORE};\
+	  unfixends performance.sv; git diff; fixends performance.sv;\
+	  touch -r .${CORE} ${CORE}; rm .${CORE};
+
+push:
+	. setup.profile; touch -r ${CORE} .${CORE};\
+	  unfixends performance.sv; git push; fixends performance.sv;\
+	  touch -r .${CORE} ${CORE}; rm .${CORE};
+
+pull:
+	. setup.profile; touch -r ${CORE} .${CORE};\
+	  unfixends performance.sv; git pull; fixends performance.sv;\
+	  touch -r .${CORE} ${CORE}; rm .${CORE};
+
+TIMESTAMP:=$(shell date +%y%m%d%H%M)
+SYMLINK:=${DIR}-${TIMESTAMP}
+tar:
+	ln -s ${DIR} ${SYMLINK}
+	tar chzf ${SYMLINK}.tgz ${SYMLINK}
+	rm ${SYMLINK}
+
+extract:
+	extract ${DIR}/* >data-${DIR}.csv 2>extract.log
+
+LOGFILE:=$(shell perl -le '@f=sort {-M $$a <=> -M $$b} glob "[aiqv]*txt"; print $$f[0] if defined $$f[0];')
+env:
+	@echo "EMAIL='${EMAIL}'"
+	@echo "MAKE='${MAKE}' MAKEFLAGS='${MAKEFLAGS}'"
+	@echo "LOGFILE='$(LOGFILE)'"
+
+#TAF!
