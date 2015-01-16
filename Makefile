@@ -11,43 +11,43 @@ export JOB
 
 INCDIRS = +incdir+.
 
-RUN_OPTS+=$d 
-RUN_OPTS+=$o 
+RUN_OPTS+=${d} 
+RUN_OPTS+=${o} 
 ifdef L
-  RUN_OPTS+='+uvm_set_config_int=*,level,$L' 
+  RUN_OPTS+='+uvm_set_config_int=*,level,${L}' 
 endif
 ifdef I
-  RUN_OPTS+='+uvm_set_config_string=*,messages,$I' 
+  RUN_OPTS+='+uvm_set_config_string=*,messages,${I}' 
 endif
 ifdef W
-  RUN_OPTS+='+uvm_set_config_string=*,warnings,$W' 
+  RUN_OPTS+='+uvm_set_config_string=*,warnings,${W}' 
 endif
 ifdef A
-  RUN_OPTS+='+uvm_set_config_int=*,agents,$A' 
+  RUN_OPTS+='+uvm_set_config_int=*,agents,${A}' 
 endif
 ifdef B
-  RUN_OPTS+='+uvm_set_config_int=*,bfm_object,$B' 
+  RUN_OPTS+='+uvm_set_config_int=*,bfm_object,${B}' 
 endif
 ifdef M
-  RUN_OPTS+='+uvm_set_config_int=*,use_monitor,$M' 
+  RUN_OPTS+='+uvm_set_config_int=*,use_monitor,${M}' 
 endif
 ifdef U
-  RUN_OPTS+='+uvm_set_config_int=*,use_seq,$U' 
+  RUN_OPTS+='+uvm_set_config_int=*,use_seq,${U}' 
 endif
 ifdef R
-  RUN_OPTS+='+uvm_set_config_string=*,tr_len,$R' 
+  RUN_OPTS+='+uvm_set_config_string=*,tr_len,${R}' 
 endif
 ifdef C
-  RUN_OPTS+='+uvm_set_config_string=*,count,$C' 
+  RUN_OPTS+='+uvm_set_config_string=*,count,${C}' 
 endif
 ifdef P
-  RUN_OPTS+='+uvm_set_config_int=*,propagate,$P' 
+  RUN_OPTS+='+uvm_set_config_int=*,propagate,${P}' 
 endif
 ifdef S
-  RUN_OPTS+='+uvm_set_config_string=*,shape,$S' 
+  RUN_OPTS+='+uvm_set_config_string=*,shape,${S}' 
 endif
 ifdef X
-  RUN_OPTS+='+uvm_set_config_string=*,switching,$X' 
+  RUN_OPTS+='+uvm_set_config_string=*,switching,${X}' 
 endif
 ifdef OPTS
   RUN_OPTS+=${OPTS}
