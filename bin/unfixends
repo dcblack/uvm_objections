@@ -1,6 +1,6 @@
 #!/usr/bin/perl -pi
 #
-# Undo VCS SystemVerilog bug fix (see fixvcs)
+# Undo VCS SystemVerilog bug fix (see fixends)
 
 BEGIN { push @ARGV,"performance.sv" unless @ARGV; }
 
