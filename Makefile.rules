@@ -7,6 +7,8 @@ MAKEFILE_RULES := $(realpath $(lastword  $(MAKEFILE_LIST)))
 -include ${HOME}/.makefile
 #
 ################################################################################
+# $Copyright(C) 2015 by Doulos $
+#
 # $License: Apache 2.0 $
 #
 # This file is licensed under the Apache License, Version 2.0 (the "License").
@@ -181,23 +183,34 @@ ifndef UVM_VER
 endif
 
 FINDBIN = $(firstword $(wildcard $(addsuffix /$1,/bin /usr/bin)))
-STD_FLAGS   := -fPIC
-START_DIR   := ${shell /bin/pwd}
+# Important executables
 SHELL       := /bin/sh
 MKDIR       := /bin/mkdir
-RM          := /bin/rm -rf
-FIND        := $(firstword $(wildcard /bin /usr/bin/find))
+RM_PGM      := /bin/rm -rf
+GREP_PGM    := /usr/bin/grep
+FIND_PGM    := $(firstword $(wildcard /bin /usr/bin/find))
+SHA1_PGM    := git hash-object
+MAIL_PGM    := Mail
+TEE_PGM     := tee
+UNAME_PGM   := uname
+#SHA1_PGM   := sha1sum
+
+STD_FLAGS   := -fPIC
+START_DIR   := ${shell /bin/pwd}
             
 ifndef UVM_HOME
-  UVM_HOME := $(lastword $(shell $(FIND) /eda/uvm /apps -name -name uvm-$(UVM_VER)$(UVM_SUB_VER)))
+  UVM_HOME := $(lastword $(shell $(FIND_PGM) /eda/uvm/. /apps -name -name uvm-$(UVM_VER)$(UVM_SUB_VER)))
+  ifeq "" "$(wildcard ${UVM_HOME})"
+  UVM_HOME := "UVM_HOME_environment_variable_undefined_please_locate_and_define"
+  endif
 endif
 
 ################################################################################
 # Figure out architecture info
 ################################################################################
-PLATFORM:=$(shell uname -s)
-MACHINE:=$(shell uname -m)
-RELEASE:=$(shell uname -r)
+PLATFORM:=$(shell ${UNAME_PGM} -s)
+MACHINE:=$(shell ${UNAME_PGM} -m)
+RELEASE:=$(shell ${UNAME_PGM} -r)
 OS_FOUND:=${PLATFORM}-${MACHINE}
 CPUWIDTH:=32
 ifndef HOST_ARCH
@@ -263,6 +276,12 @@ else
 endif
 SIMULATOR := unknown_simulator
 
+EXTRA_QUESTA_RUNOPTS += $(RUN_OPTS)
+EXTRA_IUS_RUNOPTS += $(RUN_OPTS)
+EXTRA_VCS_RUNOPTS += $(RUN_OPTS)
+ifdef TESTNAME
+RUN_OPTS += +UVM_TESTNAME=$(TESTNAME)
+endif
 
 ifeq "$(findstring questa,$(MAKECMDGOALS))" "questa"
 QVERILOG       := qverilog
@@ -325,7 +344,7 @@ PHONIES := \
   ius ius_debug ius_std ius_std_debug ius-debug ius-std ius-std-debug\
   questa questa_debug questa_std questa_std_debug questa-debug questa-std questa-std-debug\
   vcs vcs_debug vcs_std\
-  clean starting finished sha1 info notify it nil
+  clean starting finished sha1 info show notify it nil
 
 DFLT        := help
 
@@ -343,7 +362,7 @@ SEP2:=$(call Sep,A)
 HOSTNAME:=$(shell hostname)
 notify:
 ifdef MAILTO
-	@echo "Completed make $(MAKECMDGOALS)" | Mail -s '$(HOSTNAME) finished job' $(MAILTO)
+	@echo "Completed make $(MAKECMDGOALS)" | ${TEE_PGM} -a /dev/tty | ${MAIL_PGM} -s '$(HOSTNAME) finished job' $(MAILTO)
 else
 	@echo "Completed make $(MAKECMDGOALS)"
 endif
@@ -358,15 +377,21 @@ finished:
 	@echo -n "TIMESTAMP: Finished at "; date '+%s  %a %b %d %T %Z %Y'
 	@echo $(SEP2)
 
+STARTING_TIMESTAMP=$(MAKE) -f ${MAKEFILE_RULES} starting
+FINISHED_TIMESTAMP=$(MAKE) -f ${MAKEFILE_RULES} finished
+
 sha1:
 	@echo "INFO: Sha1 sums -"
-	@for f in ${SRCS}; do echo "  $$f `git hash-object $$f`"; done
+	@for f in ${SRCS}; do echo "  $$f `${SHA1_PGM} $$f`"; done
 
 info:
 	@echo "INFO: LOGFILE=$(LOGFILE)"
 	@echo "INFO: RUN=$(RUN)"
 	@echo "INFO: Simulator: $(SIMULATOR)"
 	@echo "INFO: UVM version: $(UVM)"
+
+show:
+	@echo "INFO: UVM_HOME=$(UVM_HOME)"
 
 %.so: %.cpp
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -lrt -shared -g -o $@ $<
@@ -386,10 +411,10 @@ ius_debug: sha1 info $(DPI_LIBS)
 
 ius-std: ius_std
 ius_std: sha1 info $(DPI_LIBS)
-	@$(MAKE) -f ${MAKEFILE_RULES} starting
+	@$(STARTING_TIMESTAMP)
 	$(CXX) -I$(IUS_HOME)/tools/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(IRUN) $(IUS_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -sv_lib uvm_dpi -loadpli $(IUS_PLILIB) $(EXTRA_IUS_RUNOPTS)
-	@$(MAKE) -f ${MAKEFILE_RULES} finished
+	@$(FINISHED_TIMESTAMP)
 
 ius-std-debug: ius_std_debug
 ius_std_debug: sha1 info $(DPI_LIBS)
@@ -406,10 +431,10 @@ questa_debug: sha1 info $(DPI_LIBS)
 
 questa-std: questa_std
 questa_std: sha1 info $(DPI_LIBS)
-	@$(MAKE) -f ${MAKEFILE_RULES} starting
+	@$(STARTING_TIMESTAMP)
 	$(CXX) -I$(QUESTA_HOME)/include $(CXXFLAGS) $(STD_FLAGS) -shared -g -o uvm_dpi.so $(UVM_HOME)/src/dpi/uvm_dpi.cc
 	$(QVERILOG) $(QUESTA_OPTS) $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv $(SRCS) -R -sv_lib uvm_dpi $(EXTRA_QUESTA_RUNOPTS)
-	@$(MAKE) -f ${MAKEFILE_RULES} finished
+	@$(FINISHED_TIMESTAMP)
 
 questa-std-debug: questa_std_debug
 questa_std_debug: sha1 info $(DPI_LIBS)
@@ -426,20 +451,20 @@ vcs_debug: sha1 info $(DPI_LIBS)
 
 vcs-std: vcs_std
 vcs_std: sha1 info $(DPI_LIBS)
-	@$(MAKE) starting
+	@$(STARTING_TIMESTAMP)
 	$(VCS) $(VCS_OPTS) +acc +vpi $(INCDIRS) +incdir+$(UVM_HOME)/src $(UVM_HOME)/src/uvm.sv  $(SRCS) \
 	$(UVM_HOME)/src/dpi/uvm_dpi.cc -CFLAGS -DVCS -R $(EXTRA_VCS_RUNOPTS)
-	@$(MAKE) finished
+	@$(FINISHED_TIMESTAMP)
 
 #-------------------------------------------------------------------------------
 clean:
 	@echo Cleaning old simulation files and libraries...
-	@ -$(RM) INCA_libs csrc simv* work vlog.opt *.bak *.log .simvision ncsim* *.vpd transcript \
+	@ -$(RM_PGM) INCA_libs csrc simv* work vlog.opt *.bak *.log .simvision ncsim* *.vpd transcript \
 	         waves.shm *.wlf mylib lib DVEfiles ucli.key irun.key modelsim.ini *.vstf .restart* \
 	         urgReport cov_work *.so vc_hdrs.h
 
 help:
-	@perldoc ${MAKEFILE_ORIG}
+	@${GREP_PGM} -s -q ^=pod ${MAKEFILE_ORIG} && perldoc ${MAKEFILE_ORIG} || perldoc ${MAKEFILE_RULES}
 
 rules:
 	@perldoc ${MAKEFILE_RULES}
@@ -451,5 +476,7 @@ it:
 # For testing
 nil:
 	@echo -n ""
+
+-include Makefile.local
 
 #TAF!
