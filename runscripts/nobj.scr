@@ -1,7 +1,7 @@
 #!doit -f
 
 Vendor=synopsys
-Count=21,000,000
+Count=21_000_000
 
 #                   RUN TOOL      UVM COUNT          LEVEL AGENTS PROP SEQ  TRLEN  SWITCH INFO     WARN BFM MON SHAPE
 Analyze_performance 115 $Vendor  1.1d C=$Count OPTS= L=4   A=2    P=1  U=1  R=0    X=1    I=0      W=0  B=0 M=1 S=0
