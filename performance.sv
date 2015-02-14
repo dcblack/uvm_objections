@@ -569,7 +569,7 @@ package Performance_pkg;
         repeat (m_tr_len) begin
           #1ps;
           if (My_env_t::s_messages > 0) begin
-            `uvm_info("run_phase",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
+            `uvm_info("run_phase",$sformatf("injected Data=%h",req.m_data),UVM_MEDIUM)
             --My_env_t::s_messages;
           end
           `ifdef USE_HDW
@@ -672,7 +672,7 @@ package Performance_pkg;
           g_measured_objections++;
         end
         if (My_env_t::s_warnings > 0) begin
-          `uvm_warning("Driver","<warn>")
+          `uvm_warning("Monitor","<injected>")
           --My_env_t::s_warnings;
         end
         @(negedge m_vif.is_busy);
