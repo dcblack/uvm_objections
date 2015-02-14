@@ -408,9 +408,7 @@ function Doit() {
 
   let run=1
   let first=1
-  if [[ $not_really == 0 && $script_file != "" ]]; then
-    source $script_file
-  elif [[ $not_really == 1 && $script_file != "" ]]; then
+  if [[ $script_file != "" ]]; then
     source $script_file
   else
     for V in $(Split $VENDORS); do
@@ -419,8 +417,8 @@ function Doit() {
           for W in $(Split $WARNINGS); do
             for A in $(Split $AGENTS); do
               for U in $(Split $USESEQ); do
-              for B in $(Split $USEMON); do
-              for M in $(Split $USEBFM); do
+              for M in $(Split $USEMON); do
+              for B in $(Split $USEBFM); do
               for S in $(Split $SHAPE); do
                 for R in $(Split $TR_LEN); do
                   for X in $(Split $SWITCHING); do
