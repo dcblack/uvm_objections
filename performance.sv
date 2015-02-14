@@ -332,6 +332,21 @@ package Performance_pkg;
       end//if
   endfunction : bound_tr_len
 
+  function automatic string delete_chars(input string s, cset=",_");
+    for (int i=0; i!= s.len(); ++i) begin
+      for (int j=0; j!= cset.len(); ++j) begin
+        if (s[i] == cset[j]) begin
+          int lpos = s.len()-1;
+          if (lpos == 0) return "";
+          else if (i == 0)    s = s.substr(1,lpos);
+          else if (i == lpos) s = s.substr(0,lpos-1);
+          else                s = {s.substr(0,i-1),s.substr(i+1,s.len()-1)};
+        end//if
+      end//for
+    end//for
+    return s;
+  endfunction : delete_chars
+
 //IFile: my_transaction.svh
 `ifndef  MY_TRANSACTION_SVH
 `define  MY_TRANSACTION_SVH
@@ -961,7 +976,7 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "count", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(tempstr,"%g",t));
+      assert($sscanf(delete_chars(tempstr),"%g",t));
       count = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "count", count/agents);
@@ -973,7 +988,7 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "messages", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(tempstr,"%g",t));
+      assert($sscanf(delete_chars(tempstr),"%g",t));
       messages = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "messages", messages);
@@ -984,7 +999,7 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "warnings", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(tempstr,"%g",t));
+      assert($sscanf(delete_chars(tempstr),"%g",t));
       warnings = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "warnings", warnings);
@@ -1010,7 +1025,7 @@ package Performance_pkg;
     tempstr = "";
     void'(uvm_config_db#(string)::get(this, "", "tr_len", tempstr)); //<allow from command-line
     if (tempstr != "") begin
-      assert($sscanf(tempstr,"%h", tr_len));
+      assert($sscanf(delete_chars(tempstr),"%h", tr_len));
     end
     uvm_config_db#(tr_len_t)::set(uvm_top, "*", "tr_len", tr_len);
     `uvm_info("build_phase",$sformatf("tr_len=%0d", tr_len), UVM_NONE)
@@ -1149,26 +1164,26 @@ package Performance_pkg;
   //--------------------------------------------------------------------------
   function void My_test_t::report_phase(uvm_phase phase);
     longint cpu_ms, wall_ms;
-    string sep1;
+    string sep1, sep2, summary;
     sep1 = {"\n",SEP6, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
-    `uvm_info("report_phase", $sformatf("%s%s transactions created", sep1, formatn(My_transaction_t::s_count)), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("Extended objections: %d", g_extended), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("CPU  starting time: %f", m_cpu_starting_time), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("CPU  finished time: %f", m_cpu_finished_time), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("Wall starting time: %f", m_wall_starting_time), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("Wall finished time: %f", m_wall_finished_time), UVM_NONE)
-    `uvm_info("report_phase"
-             , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
+    summary =           $sformatf(  "#   %s transactions created", formatn(My_transaction_t::s_count));
+    summary = {summary, $sformatf("\n#   Normal objections: %0d", g_measured_objections)};
+    summary = {summary, $sformatf("\n#   Extend objections: %0d", g_extended)};
+    summary = {summary, $sformatf("\n#   CPU  starting time: %f", m_cpu_starting_time)};
+    summary = {summary, $sformatf("\n#   CPU  finished time: %f", m_cpu_finished_time)};
+    summary = {summary, $sformatf("\n#   Wall starting time: %f", m_wall_starting_time)};
+    summary = {summary, $sformatf("\n#   Wall finished time: %f", m_wall_finished_time)};
+    summary = {summary, $sformatf("\n#   RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                         , `UVM_VERSION_STRING
-                        , formatn(g_measured_objections)
+                        , formatn(g_measured_objections + g_extended)
                         , formatn(cpu_ms)
                         , formatn(wall_ms)
                         , m_features
                         )
-             , UVM_NONE
-             )
+              };
+    `uvm_info("report_phase", $sformatf("\n%s\nSUMMARY:\n%s\n%s", sep1, summary, sep2), UVM_NONE)
   endfunction : My_test_t::report_phase
   //--------------------------------------------------------------------------
 
