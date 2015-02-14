@@ -51,7 +51,8 @@ tar:
 	rm ${SYMLINK}
 
 extract:
-	extract ${DIR}/* >data-${DIR}.csv 2>extract.log
+	@mkdir -p data
+	extract ${DIR}/*.txt >data/data-${DIR}.csv 2>extract.log
 
 LOGFILE:=$(shell perl -le '@f=sort {-M $$a <=> -M $$b} glob "[aiqv]*txt"; print $$f[0] if defined $$f[0];')
 env:
