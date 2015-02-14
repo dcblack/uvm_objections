@@ -1,35 +1,15 @@
-//File: defines.svh
-`ifndef DEFINES_SVH
-`define DEFINES_SVH
-
-`ifndef USE_HDW
-  `define USE_HDW
-`endif
-`ifndef USE_FIELD_MACROS
-  `define USE_FIELD_MACROS
-`endif
-
+//File: ABOUT.txt
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // DESCRIPTION
 //
-//   This code is designed to test relative runtime performance of various UVM
-//   versions, implementations, and associated simulators.
+// This code is designed to test relative runtime performance of various UVM
+// versions, implementations, and associated simulators.
 //
-// LICENSE
+//File: CONVENTIONS.txt
+// CONVENTIONS
 //
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
+// Code formatting conventions used in this file are:
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-// Code formatting conventions used:
 //   1. All modules, interfaces, packages, and classes use word capitalization (e.g. Design)
 //      Classes furthermore have an _t suffix to indicate they represent a data type.
 //   2. Member data other than ports use m_ prefix.
@@ -38,20 +18,26 @@
 //   5. Typedefs and classes use _t suffix.
 //   6. First letter of class is uppercase. Separate words within with underscores.
 //
-// This file combines what would normally be a multiple files into one; however, file
+// The original file combines what would normally be multiple files into one; however, file
 // boundaries have been marked with specially setup comments:
 //
 //   //File: FILENAME -- introduces a new file
 //   //IFile: FILENAME -- introduces a new file replaced with `include in the containing file
 //   //Include: FILENAME -- should be replaced with a proper include if separate files
+//   //Inline: FILENAME -- pulls a file back in
 //   //Continue: FILENAME -- resumes a file
 //   //`endif /*GUARDNAME*/ -- ends a header file
 //   //EOF: FILENAME -- ends a non-header file
 //
-// Also, filenames ending in `.svh` are header files intended to be included; whereas, `.sv`
-// indicates potentially separate compilation units. Exception: `.sv` implementations are included
-// in packages since packages are considered to be separately compiled with their contents.
+// Also, filenames ending in `.svh` or `.svi` are header files intended to be included; whereas,
+// `.sv` indicates potentially separate compilation units. Exception: `.sv` implementations are
+// included in packages since packages are considered to be separately compiled with their contents.
+// The `.svi` designation is intended for "implementations" separated from their corresponding
+// `.svh` header files to make it easier to simply view the header without the distracting content.
 
+//File: CONFIGURATION.txt
+// CONFIGURATION
+//
 // This code has the following run-time configuration variables:
 //
 // +uvm_set_config_int=*,agents,NUMBER specifies how many agents to instantiate
@@ -68,7 +54,36 @@
 // +uvm_set_config_string=*,tr_len,HEX specifies transaction lengths in nybbles
 // +uvm_set_config_string=*,warnings,NUMBER specifies if warning messages to be enabled (0)
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//File: COPYRIGHT.txt
+//--------------------------------------------------------------------------------------------------
+// COPYRIGHT
+//
+// This code and accompanying files is Copyright (C) 2015 Doulos Inc.
+//
+// LICENSE
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//File: defines.svh
+`ifndef DEFINES_SVH
+`define DEFINES_SVH
+
+`ifndef USE_HDW
+  `define USE_HDW
+`endif
+`ifndef USE_FIELD_MACROS
+  `define USE_FIELD_MACROS
+`endif
 
 // The following affect the static design
 `ifndef CLOCK_PERIOD
@@ -81,7 +96,7 @@
   `define BITS 32
 `endif
 
-typedef logic [`BITS:0] Data_t; // Used for hardware data register size
+typedef logic [`BITS-1:0] Data_t; // Used for hardware data register size
 
 `endif
 //File: elablorate.sv
@@ -95,6 +110,7 @@ typedef logic [`BITS:0] Data_t; // Used for hardware data register size
 //  #     #     #     # #    # #    # #   #  #     #    #    #     
 //  ##### ##### #     # #####   ####  #    # #     #    #    ##### 
 //
+//Inline: COPYRIGHT.txt
 ////////////////////////////////////////////////////////////////////////////////
 // Display `define status
 //Include: defines.svh
@@ -142,6 +158,7 @@ endmodule
 //   #  #    ##    #    #     #   #  #     #     # #    # #    
 //  ### #     #    #    ##### #    # #     #     #  ####  #####
 //
+//Inline: COPYRIGHT.txt
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
 interface My_intf ( input bit clock );
@@ -149,7 +166,7 @@ interface My_intf ( input bit clock );
   logic  is_busy;
   Data_t data;
   Data_t result;
-  modport hdw_mp(output reset, input is_busy, input data, input clock, input result);
+  modport hdw_mp(input reset, input is_busy, input data, input clock, output result);
   `ifdef USE_CLOCKING
   clocking cb @(posedge clock);
     output #1step data;
@@ -174,6 +191,7 @@ endinterface : My_intf
 //  #    # #     # #   #  #   #  #  #  # #     # #   #  #    
 //  #    # #     # #    # ####    ## ##  #     # #    # #####
 //
+//Inline: COPYRIGHT.txt
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
 // NOTE: Uses typedef Data_t; otherwise, this is normal Verilog, but NOT RTL
@@ -230,6 +248,7 @@ endmodule : Design
 //  #    # #     # #   #  #    ## #     #    # #    #
 //  #    # #     # #    # #     # #####  ####   #### 
 //
+//Inline: COPYRIGHT.txt
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
 module harness;
@@ -264,6 +283,7 @@ endmodule : harness
 //  #      #     # #    # #   #   #     # #    # #     
 //  #      #     #  ####  #    #  #     #  ####  ##### 
 //
+//Inline: COPYRIGHT.txt
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
 `include "uvm_macros.svh"
@@ -311,6 +331,21 @@ package Performance_pkg;
         tr_len = 1; // always at least one
       end//if
   endfunction : bound_tr_len
+
+  function automatic string delete_chars(input string s, cset=",_");
+    for (int i=0; i!= s.len(); ++i) begin
+      for (int j=0; j!= cset.len(); ++j) begin
+        if (s[i] == cset[j]) begin
+          int lpos = s.len()-1;
+          if (lpos == 0) return "";
+          else if (i == 0)    s = s.substr(1,lpos);
+          else if (i == lpos) s = s.substr(0,lpos-1);
+          else                s = {s.substr(0,i-1),s.substr(i+1,s.len()-1)};
+        end//if
+      end//for
+    end//for
+    return s;
+  endfunction : delete_chars
 
 //IFile: my_transaction.svh
 `ifndef  MY_TRANSACTION_SVH
@@ -426,7 +461,7 @@ package Performance_pkg;
   endclass : My_sequence_t
 
 `endif /*MY_SEQUENCE_SVH*/
-//IFile: my_sequence.sv
+//IFile: my_sequence.svi
 //Include: my_sequence.svh
   //----------------------------------------------------------------------------
   task My_sequence_t::pre_start;
@@ -507,7 +542,7 @@ package Performance_pkg;
   endclass : My_driver_t
 
 `endif /*MY_DRIVER_SVH*/
-//IFile: my_driver.sv
+//IFile: my_driver.svi
 //Include: my_driver.svh
   //----------------------------------------------------------------------------
   function void My_driver_t::connect_phase(uvm_phase phase);
@@ -549,7 +584,7 @@ package Performance_pkg;
         repeat (m_tr_len) begin
           #1ps;
           if (My_env_t::s_messages > 0) begin
-            `uvm_info("run_phase",$sformatf("Data=%h",req.m_data),UVM_MEDIUM)
+            `uvm_info("run_phase",$sformatf("injected Data=%h",req.m_data),UVM_MEDIUM)
             --My_env_t::s_messages;
           end
           `ifdef USE_HDW
@@ -619,7 +654,7 @@ package Performance_pkg;
   endclass : My_monitor_t
 
 `endif /*MY_MONITOR_SVH*/
-//IFile: my_monitor.sv
+//IFile: my_monitor.svi
 //Include: my_monitor.svh
   //----------------------------------------------------------------------------
   function void My_monitor_t::connect_phase(uvm_phase phase);
@@ -652,7 +687,7 @@ package Performance_pkg;
           g_measured_objections++;
         end
         if (My_env_t::s_warnings > 0) begin
-          `uvm_warning("Driver","<warn>")
+          `uvm_warning("Monitor","<injected>")
           --My_env_t::s_warnings;
         end
         @(negedge m_vif.is_busy);
@@ -710,7 +745,7 @@ package Performance_pkg;
   endclass : My_agent_t
 
 `endif /*MY_AGENT_SVH*/
-//IFile: my_agent.sv
+//IFile: my_agent.svi
 //Include: my_agent.svh
   //----------------------------------------------------------------------------
   function void My_agent_t::build_phase(uvm_phase phase);
@@ -773,7 +808,7 @@ package Performance_pkg;
   endclass : My_env_t
 
 `endif /*MY_ENV_SVH*/
-//IFile: my_env.sv
+//IFile: my_env.svi
 //Include: my_env.svh
   //----------------------------------------------------------------------------
   function void My_env_t::build_phase(uvm_phase phase);
@@ -861,7 +896,7 @@ package Performance_pkg;
   endclass : My_test_t
 
 `endif /*MY_TEST_SVH*/
-//IFile: my_test.sv
+//IFile: my_test.svi
 //Include: my_test.svh
   //----------------------------------------------------------------------------
   // Set drain-time and propagation mode for all run-time (task based) phases
@@ -941,7 +976,7 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "count", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(tempstr,"%g",t));
+      assert($sscanf(delete_chars(tempstr),"%g",t));
       count = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "count", count/agents);
@@ -953,7 +988,7 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "messages", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(tempstr,"%g",t));
+      assert($sscanf(delete_chars(tempstr),"%g",t));
       messages = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "messages", messages);
@@ -964,7 +999,7 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "warnings", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(tempstr,"%g",t));
+      assert($sscanf(delete_chars(tempstr),"%g",t));
       warnings = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "warnings", warnings);
@@ -990,7 +1025,7 @@ package Performance_pkg;
     tempstr = "";
     void'(uvm_config_db#(string)::get(this, "", "tr_len", tempstr)); //<allow from command-line
     if (tempstr != "") begin
-      assert($sscanf(tempstr,"%h", tr_len));
+      assert($sscanf(delete_chars(tempstr),"%h", tr_len));
     end
     uvm_config_db#(tr_len_t)::set(uvm_top, "*", "tr_len", tr_len);
     `uvm_info("build_phase",$sformatf("tr_len=%0d", tr_len), UVM_NONE)
@@ -1129,26 +1164,26 @@ package Performance_pkg;
   //--------------------------------------------------------------------------
   function void My_test_t::report_phase(uvm_phase phase);
     longint cpu_ms, wall_ms;
-    string sep1;
+    string sep1, sep2, summary;
     sep1 = {"\n",SEP6, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
-    `uvm_info("report_phase", $sformatf("%s%s transactions created", sep1, formatn(My_transaction_t::s_count)), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("Extended objections: %d", g_extended), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("CPU  starting time: %f", m_cpu_starting_time), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("CPU  finished time: %f", m_cpu_finished_time), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("Wall starting time: %f", m_wall_starting_time), UVM_NONE)
-    `uvm_info("report_phase", $sformatf("Wall finished time: %f", m_wall_finished_time), UVM_NONE)
-    `uvm_info("report_phase"
-             , $sformatf("RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
+    summary =           $sformatf(  "#   %s transactions created", formatn(My_transaction_t::s_count));
+    summary = {summary, $sformatf("\n#   Normal objections: %0d", g_measured_objections)};
+    summary = {summary, $sformatf("\n#   Extend objections: %0d", g_extended)};
+    summary = {summary, $sformatf("\n#   CPU  starting time: %f", m_cpu_starting_time)};
+    summary = {summary, $sformatf("\n#   CPU  finished time: %f", m_cpu_finished_time)};
+    summary = {summary, $sformatf("\n#   Wall starting time: %f", m_wall_starting_time)};
+    summary = {summary, $sformatf("\n#   Wall finished time: %f", m_wall_finished_time)};
+    summary = {summary, $sformatf("\n#   RESULT: %s objected %s times in %s ms CPU %s ms WALL%s"
                         , `UVM_VERSION_STRING
-                        , formatn(g_measured_objections)
+                        , formatn(g_measured_objections + g_extended)
                         , formatn(cpu_ms)
                         , formatn(wall_ms)
                         , m_features
                         )
-             , UVM_NONE
-             )
+              };
+    `uvm_info("report_phase", $sformatf("\n%s\nSUMMARY:\n%s\n%s", sep1, summary, sep2), UVM_NONE)
   endfunction : My_test_t::report_phase
   //--------------------------------------------------------------------------
 
@@ -1168,6 +1203,7 @@ endpackage : Performance_pkg
 //     #    #    # #     
 //     #     ####  #     
 //
+//Inline: COPYRIGHT.txt
 ////////////////////////////////////////////////////////////////////////////////
 //Include: defines.svh
 //Include: uvm_macros.svh

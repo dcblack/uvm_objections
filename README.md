@@ -6,6 +6,15 @@ of UVM performance in the area of raising and dropping
 objections. It is designed to test various versions
 of UVM with large numbers of objections.
 
+Important
+---------
+To keep things consistent, you may change compiler/runtime
+switches (Makefile.rules), but please do NOT change any
+of the SystemVerilog itself. If you have problems getting
+it to run due to SystemVerilog issues, please be sure you
+are running a relatively recent version of SystemVerilog
+before contacting the authors.
+
 How to
 ------
 

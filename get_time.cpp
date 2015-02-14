@@ -49,10 +49,7 @@ extern "C"
 double get_wall_time(void)
 {
   timespec time;
-  if (clock_gettime(CLOCK_REALTIME,&time)){
-    //  Handle error
-    return 0;
-  }
+  if (clock_gettime(CLOCK_REALTIME,&time)) return 0; // Error
   return double(time.tv_sec) + double(time.tv_nsec) * 1.0e-9;
 }
 
@@ -60,12 +57,9 @@ extern "C"
 double get_cpu_time(void)
 {
   timespec time;
-  if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&time)){
-    //  Handle error
+  if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&time)) return 0; // Error
     return 0;
-  }
   return double(time.tv_sec) + double(time.tv_nsec) * 1.0e-9;
-  //return double(clock()/CLOCKS_PER_SEC);
 }
 #endif
 
