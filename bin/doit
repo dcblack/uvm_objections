@@ -291,6 +291,8 @@ function Analyze_performance() {
     echo "Analyze_performance ${RUN} ${VENDOR} ${VERS} $*"                                                    | tee    $LOG.txt
     echo "env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} $*   $d $o 2>&1" | tee -a $LOG.txt
           env UVM_HOME=/eda/uvm/uvm-${VERS} make $clean ${VENDOR}_std RUN=${RUN} UVM=${VERS} "$@" $d $o 2>&1  | tee -a $LOG.txt
+    echo "Removing excess I/O from $LOG.txt"
+    bin/decimate 'injected' $LOG.txt
   else
     if [[ "$script_file" != "" ]]; then
       echo "Analyze_performance ${RUN} ${VENDOR} ${VERS} $*" >>$script_file
