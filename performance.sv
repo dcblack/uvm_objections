@@ -120,9 +120,9 @@ module Elaborate;
   timeprecision 1ps;
   //----------------------------------------------------------------------------
   initial begin
-    $display("HDW_INFO CLOCK_PERIOD=%0t",`CLOCK_PERIOD);
-    $display("HDW_INFO BUSY=%0d",`BUSY);
-    $display("HDW_INFO BITS=%0d",`BITS);
+    $display("HDW_INFO CLOCK_PERIOD=%0t", `CLOCK_PERIOD);
+    $display("HDW_INFO BUSY=%0d", `BUSY);
+    $display("HDW_INFO BITS=%0d", `BITS);
     `ifdef USE_HDW
     $display("HDW_INFO USE_HDW defined");
     `else
@@ -139,7 +139,7 @@ module Elaborate;
     $display("HDW_INFO No field macros");
     `endif
     `ifdef HDW_NOISE
-    $display("HDW_INFO HDW_NOISE defined to show initial %0d clocks of HDW activity",`HDW_NOISE);
+    $display("HDW_INFO HDW_NOISE defined to show initial %0d clocks of HDW activity", `HDW_NOISE);
     `else
     $display("HDW_INFO HDW silent");
     `endif
@@ -228,7 +228,7 @@ module Design ( input reset, input clock
   // Generate lots of data to show operation (normally off)
   initial begin
     $display("HDW_INFO reset clock is_busy data result");
-    $monitor("HDW_INFO %t %b %b %b %h %h",$time,reset,clock,is_busy,data,result);
+    $monitor("HDW_INFO %t %b %b %b %h %h", $time, reset, clock, is_busy, data, result);
     repeat (`HDW_NOISE) @(posedge clock);
     $monitoroff;
     $display("HDW_INFO end of noise");
@@ -338,9 +338,9 @@ package Performance_pkg;
         if (s[i] == cset[j]) begin
           int lpos = s.len()-1;
           if (lpos == 0) return "";
-          else if (i == 0)    s = s.substr(1,lpos);
-          else if (i == lpos) s = s.substr(0,lpos-1);
-          else                s = {s.substr(0,i-1),s.substr(i+1,s.len()-1)};
+          else if (i == 0)    s = s.substr(1, lpos);
+          else if (i == lpos) s = s.substr(0, lpos-1);
+          else                s = {s.substr(0, i-1), s.substr(i+1, s.len()-1)};
         end//if
       end//for
     end//for
@@ -368,10 +368,12 @@ package Performance_pkg;
     static longint s_count = 0;
     rand bit       m_reset = 0;
     rand integer   m_data  = 'hDEADBEEF;
+    longint        m_tid   = -1;
     `ifdef USE_FIELD_MACROS
     `uvm_object_utils_begin(My_transaction_t)
       `uvm_field_int(m_reset, UVM_DEFAULT)
       `uvm_field_int(m_data,  UVM_DEFAULT)
+      `uvm_field_int(m_tid,   UVM_DEFAULT)
     `uvm_object_utils_end
     `else
     `uvm_object_utils(My_transaction_t)
@@ -380,11 +382,11 @@ package Performance_pkg;
     // Constructor
     function new(string name="");
       super.new(name);
-      s_count++;
+      m_tid = s_count++;
     endfunction : new
     //--------------------------------------------------------------------------
     function string convert2string;
-      return $sformatf("{R=%s D=%0h}",m_reset,m_data);
+      return $sformatf("{I=%0d R=%s D=%0h}", m_tid, m_reset, m_data);
     endfunction : convert2string
     //--------------------------------------------------------------------------
     constraint reset_constraint { m_reset dist { 0 := 99, 1 := 1 }; }
@@ -471,17 +473,17 @@ package Performance_pkg;
     void' (uvm_config_db#(bit)     ::get(p_sequencer, "", "use_do", m_use_do));
     bound_tr_len(m_tr_len, m_id);
     m_reps = m_count/m_tr_len;
-    `uvm_info("DEBUG",$sformatf("Starting %0d.%0d for %0d repetitions", m_level, m_id, m_reps), UVM_DEBUG)
+    `uvm_info("DEBUG", $sformatf("Starting %0d.%0d for %0d repetitions", m_level, m_id, m_reps), UVM_DEBUG)
   endtask : My_sequence_t::pre_start
   //----------------------------------------------------------------------------
   task My_sequence_t::body;
     // Perform a simple reset when starting
     if (m_use_do) begin
-      `uvm_do_with(req,{m_reset == 1;})
+      `uvm_do_with(req, {m_reset == 1;})
     end else begin
       req = My_transaction_t::type_id::create("req");
       start_item(req);
-      if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance","Unable to randomize reset transaction")
+      if (!req.randomize() with {m_reset == 1;}) `uvm_error("Performance", "Unable to randomize reset transaction")
       finish_item(req);
     end//if
     repeat (m_reps-1/*account for reset*/) begin
@@ -490,14 +492,14 @@ package Performance_pkg;
       end else begin
         req = My_transaction_t::type_id::create("req");
         start_item(req);
-        if (!req.randomize()) `uvm_error("Performance","Unable to randomize reset transaction")
+        if (!req.randomize()) `uvm_error("Performance", "Unable to randomize reset transaction")
         finish_item(req);
       end//if
     end
   endtask : My_sequence_t::body
   //----------------------------------------------------------------------------
   task My_sequence_t::post_start;
-    `uvm_info("DEBUG",$sformatf("Ending %0d",m_id), UVM_DEBUG)
+    `uvm_info("DEBUG", $sformatf("Ending %0d", m_id), UVM_DEBUG)
   endtask : My_sequence_t::post_start
 
 //EOF: my_sequence.sv
@@ -555,7 +557,7 @@ package Performance_pkg;
   endfunction : My_driver_t::connect_phase
   //----------------------------------------------------------------------------
   task My_driver_t::run_phase(uvm_phase phase);
-    string obj_name = $sformatf("driver[%0d]",m_id);
+    string obj_name = $sformatf("driver[%0d]", m_id);
     if (m_bfm_objects) phase.raise_objection(this, "Raise to get off zero");
     #1; // Get off zero
     if (m_bfm_objects) phase.drop_objection(this, "Drop and wait to start");
@@ -577,14 +579,14 @@ package Performance_pkg;
       seq_item_port.get(req);
       m_busy = 1;
       if (m_bfm_objects) begin
-        phase.raise_objection(this, $sformatf("%s begin transmit",obj_name));
+        phase.raise_objection(this, $sformatf("%s begin transmit", obj_name));
         g_measured_objections++;
       end
       if (m_switching == 1) begin // normal context switching
         repeat (m_tr_len) begin
           #1ps;
           if (My_env_t::s_messages > 0) begin
-            `uvm_info("run_phase",$sformatf("injected Data=%h",req.m_data),UVM_MEDIUM)
+            `uvm_info("run_phase", $sformatf("injected Data=%h", req.m_data), UVM_MEDIUM)
             --My_env_t::s_messages;
           end
           `ifdef USE_HDW
@@ -597,7 +599,7 @@ package Performance_pkg;
           `endif
         end//repeat
       end//if
-      if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end transmit",obj_name));
+      if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end transmit", obj_name));
       m_busy = 0;
     end//forever
   endtask : My_driver_t::run_phase
@@ -665,7 +667,7 @@ package Performance_pkg;
   endfunction : My_monitor_t::connect_phase
   //----------------------------------------------------------------------------
   task My_monitor_t::run_phase(uvm_phase phase);
-    string   obj_name = $sformatf("monitor[%0d]",m_id);
+    string   obj_name = $sformatf("monitor[%0d]", m_id);
     m_starting_event.wait_trigger();
     //////////////////////////////////////////////////////////////////////////
     //
@@ -683,15 +685,15 @@ package Performance_pkg;
         @(posedge m_vif.is_busy);
         m_busy = 1;
         if (m_bfm_objects) begin
-          phase.raise_objection(this, $sformatf("%s begin observation",obj_name));
+          phase.raise_objection(this, $sformatf("%s begin observation", obj_name));
           g_measured_objections++;
         end
         if (My_env_t::s_warnings > 0) begin
-          `uvm_warning("Monitor","<injected>")
+          `uvm_warning("Monitor", "<injected>")
           --My_env_t::s_warnings;
         end
         @(negedge m_vif.is_busy);
-        if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end observation",obj_name));
+        if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end observation", obj_name));
         m_busy = 0;
       end//repeat
     end
@@ -750,9 +752,9 @@ package Performance_pkg;
   //----------------------------------------------------------------------------
   function void My_agent_t::build_phase(uvm_phase phase);
     m_id = g_next_id++;
-    m_sequencer = My_sequencer_t::type_id::create($sformatf("m_sequencer[%0d]",m_id),this);
-    m_driver    = My_driver_t   ::type_id::create($sformatf("m_driver[%0d]",m_id),this);
-    m_monitor   = My_monitor_t  ::type_id::create($sformatf("m_monitor[%0d]",m_id),this);
+    m_sequencer = My_sequencer_t::type_id::create($sformatf("m_sequencer[%0d]", m_id), this);
+    m_driver    = My_driver_t   ::type_id::create($sformatf("m_driver[%0d]", m_id), this);
+    m_monitor   = My_monitor_t  ::type_id::create($sformatf("m_monitor[%0d]", m_id), this);
   endfunction : My_agent_t::build_phase
   //----------------------------------------------------------------------------
   function void My_agent_t::connect_phase(uvm_phase phase);
@@ -818,30 +820,30 @@ package Performance_pkg;
     m_id = g_next_id++;
     void'(uvm_config_db#(shape_t)::get(this, "", "shape", m_shape));
     assert(uvm_config_db#(shortint)::get(this, "", "agents", width))
-    else `uvm_error("Performance","Missing agent configuration")
+    else `uvm_error("Performance", "Missing agent configuration")
     assert(uvm_config_db#(shortint)::get(this, "", "level", m_level))
-    else `uvm_error("Performance","Missing level configuration")
-    if ($cast(parent,get_parent())) begin
+    else `uvm_error("Performance", "Missing level configuration")
+    if ($cast(parent, get_parent())) begin
       m_level = parent.m_level - 1;
     end
-    `uvm_info("DEBUG",$sformatf("env.id=%0d agents/width=%0d shape=%s level=%0d", m_id, width, m_shape.name, m_level), UVM_DEBUG)
+    `uvm_info("DEBUG", $sformatf("env.id=%0d agents/width=%0d shape=%s level=%0d", m_id, width, m_shape.name, m_level), UVM_DEBUG)
     if (m_level > 0 && parent == null) begin
       // Build the width
       if (m_shape == SHAPE_NARROW) width = 1;
-      inst_nm = $sformatf("uvc_T%0d",m_level);
+      inst_nm = $sformatf("uvc_T%0d", m_level);
       m_uvc = new[width];
       for (shortint unsigned i=0; i!=width; i++) begin
-        m_uvc[i] = My_env_t::type_id::create($sformatf("%s[%0d]", inst_nm, g_next_id+i*m_level),this);
+        m_uvc[i] = My_env_t::type_id::create($sformatf("%s[%0d]", inst_nm, g_next_id+i*m_level), this);
       end
     end else if (m_level > 0) begin
       inst_nm = $sformatf("uvc_L%0d[%0d]", m_level, g_next_id);
       m_uvc = new[1];
-      m_uvc[0] = My_env_t::type_id::create(inst_nm,this);
+      m_uvc[0] = My_env_t::type_id::create(inst_nm, this);
     end else begin // Bottom
       if (parent != null && m_shape == SHAPE_WIDE) width = 1;
       m_agent = new[width];
       for (shortint unsigned i=0; i!=width; i++) begin
-        m_agent[i] = My_agent_t::type_id::create($sformatf("m_agent[%0d]", g_next_id+i),this);
+        m_agent[i] = My_agent_t::type_id::create($sformatf("m_agent[%0d]", g_next_id+i), this);
         m_agent[i].m_level = this.m_level;
       end
     end
@@ -902,7 +904,7 @@ package Performance_pkg;
   // Set drain-time and propagation mode for all run-time (task based) phases
   function void My_test_t::phase_started(uvm_phase phase);
     uvm_task_phase task_phase;
-    if ($cast(task_phase,phase.get_imp())) begin
+    if ($cast(task_phase, phase.get_imp())) begin
       uvm_objection objection;
       objection = phase.get_objection();
       `ifdef UVM_POST_VERSION_1_1
@@ -946,29 +948,29 @@ package Performance_pkg;
     // Manage configuration
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "level", levels)); //<allow from command-line
     uvm_config_db#(shortint)::set(uvm_top, "*", "level", levels);
-    `uvm_info("build_phase",$sformatf("levels=%0d",levels), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("levels=%0d", levels), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "agents", agents)); //<allow from command-line
     if (agents <=0) begin
-      `uvm_warning("build_phase",$sformatf("Detected agents <= 0 (%d); forcing to 1.",agents))
+      `uvm_warning("build_phase", $sformatf("Detected agents <= 0 (%d); forcing to 1.", agents))
       agents = 1;
     end
     uvm_config_db#(shortint)::set(uvm_top, "*", "agents", agents);
-    `uvm_info("build_phase",$sformatf("agents=%0d",agents), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("agents=%0d", agents), UVM_NONE)
 
     void'(uvm_config_db#(string)::get(this, "", "shape", tempstr)); //<allow from command-line
     if      (tempstr == "0") shape = shape_t'(0);
     else if (tempstr == "1") shape = shape_t'(1);
     `ifdef UVM_POST_VERSION_1_1
     else assert(shape_wrapper_t::from_name(tempstr, shape))
-         else `uvm_error("build_phase",$sformatf("Illegal shape enum: '%s' from command-line", tempstr))
+         else `uvm_error("build_phase", $sformatf("Illegal shape enum: '%s' from command-line", tempstr))
     `else
     else if (tempstr == "SHAPE_WIDE")   shape = SHAPE_WIDE;
     else if (tempstr == "SHAPE_NARROW") shape = SHAPE_NARROW;
-    else `uvm_error("build_phase",$sformatf("Illegal shape enum: '%s' from command-line", tempstr))
+    else `uvm_error("build_phase", $sformatf("Illegal shape enum: '%s' from command-line", tempstr))
     `endif
     uvm_config_db#(shape_t)::set(uvm_top, "*", "shape", shape);
-    `uvm_info("build_phase",$sformatf("shape=%0d",shape), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("shape=%0d", shape), UVM_NONE)
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead
     // of raw integers on command-line
@@ -976,11 +978,11 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "count", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(delete_chars(tempstr),"%g",t));
+      assert($sscanf(delete_chars(tempstr), "%g", t));
       count = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "count", count/agents);
-    `uvm_info("build_phase",$sformatf("count=%0d",count), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("count=%0d", count), UVM_NONE)
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead
     // of raw integers on command-line
@@ -988,60 +990,60 @@ package Performance_pkg;
     void'(uvm_config_db#(string)::get(this, "", "messages", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(delete_chars(tempstr),"%g",t));
+      assert($sscanf(delete_chars(tempstr), "%g", t));
       messages = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "messages", messages);
-    `uvm_info("build_phase",$sformatf("messages=%0d",messages), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("messages=%0d", messages), UVM_NONE)
 
     // Using a string option allows numeric values such as 1e6 or 1.5e3 instead of raw integers
     tempstr = "";
     void'(uvm_config_db#(string)::get(this, "", "warnings", tempstr)); //<allow from command-line
     if (tempstr != "") begin
       real t;
-      assert($sscanf(delete_chars(tempstr),"%g",t));
+      assert($sscanf(delete_chars(tempstr), "%g", t));
       warnings = 0 + t;
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "warnings", warnings);
-    `uvm_info("build_phase",$sformatf("warnings=%0d",warnings), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("warnings=%0d", warnings), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_monitor", use_monitor)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_monitor", use_monitor);
-    `uvm_info("build_phase",$sformatf("use_monitor=%0d",use_monitor), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("use_monitor=%0d", use_monitor), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "bfm_object", bfm_object)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "bfm_object", bfm_object);
-    `uvm_info("build_phase",$sformatf("bfm_object=%0d", bfm_object), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("bfm_object=%0d", bfm_object), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_do", use_do)); //<allow from command-line
     uvm_config_db#(bit)::set(uvm_top, "*", "use_do", use_do);
-    `uvm_info("build_phase",$sformatf("use_do=%0d", use_do), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("use_do=%0d", use_do), UVM_NONE)
 
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "use_seq", use_seq)); //<allow from command-line
     uvm_config_db#(int)::set(uvm_top, "*", "use_seq", use_seq);
-    `uvm_info("build_phase",$sformatf("use_seq=%0d", use_seq), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("use_seq=%0d", use_seq), UVM_NONE)
 
     // Transaction-length specified in HEX to distinguish the nybbles
     tempstr = "";
     void'(uvm_config_db#(string)::get(this, "", "tr_len", tempstr)); //<allow from command-line
     if (tempstr != "") begin
-      assert($sscanf(delete_chars(tempstr),"%h", tr_len));
+      assert($sscanf(delete_chars(tempstr), "%h", tr_len));
     end
     uvm_config_db#(tr_len_t)::set(uvm_top, "*", "tr_len", tr_len);
-    `uvm_info("build_phase",$sformatf("tr_len=%0d", tr_len), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("tr_len=%0d", tr_len), UVM_NONE)
 
     // Context-switching 0 or 1 only
     tempstr = "";
     void'(uvm_config_db#(string)::get(this, "", "switching", tempstr)); //<allow from command-line
     if (tempstr != "") begin
-      assert($sscanf(tempstr,"%d", switching));
+      assert($sscanf(tempstr, "%d", switching));
     end
     uvm_config_db#(longint)::set(uvm_top, "*", "switching", switching);
-    `uvm_info("build_phase",$sformatf("switching=%0d", switching), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("switching=%0d", switching), UVM_NONE)
 
     // Propagate
     void'(uvm_config_db#(uvm_bitstream_t)::get(this, "", "propagate", m_propagate));
-    `uvm_info("build_phase",$sformatf("propagate=%0d", m_propagate), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("propagate=%0d", m_propagate), UVM_NONE)
 
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
@@ -1050,7 +1052,7 @@ package Performance_pkg;
 
   //----------------------------------------------------------------------------
   task My_test_t::reset_phase(uvm_phase phase);
-    `uvm_info("build_phase",$sformatf("\n%s\nPREPARING\n%s", SEP1, SEP2), UVM_NONE)
+    `uvm_info("build_phase", $sformatf("\n%s\nPREPARING\n%s", SEP1, SEP2), UVM_NONE)
   endtask : My_test_t::reset_phase
 
   //----------------------------------------------------------------------------
@@ -1110,7 +1112,7 @@ package Performance_pkg;
     //   ####     #    #     # #    #    #
     //
     //////////////////////////////////////////////////////////////////////////
-    `uvm_info("main_phase",$sformatf("\n%s\nRUNNING\n%s", SEP2, SEP3), UVM_NONE)
+    `uvm_info("main_phase", $sformatf("\n%s\nRUNNING\n%s", SEP2, SEP3), UVM_NONE)
     m_starting_event.trigger();
     m_cpu_starting_time  = get_cpu_time();
     m_wall_starting_time = get_wall_time();
@@ -1121,8 +1123,8 @@ package Performance_pkg;
         My_sequencer_t seqr;
         My_agent_t agent;
         if (!$cast(seqr, seqrs[i])) continue; // skip accidently named non-sequencers
-        $cast(agent,seqr.get_parent());
-        `uvm_info("DEBUG",$sformatf("Found sequencer[%0d] %0d.%0d", i, agent.m_level, seqr.m_id), UVM_DEBUG)
+        $cast(agent, seqr.get_parent());
+        `uvm_info("DEBUG", $sformatf("Found sequencer[%0d] %0d.%0d", i, agent.m_level, seqr.m_id), UVM_DEBUG)
         fork 
           shortint id = i;
           begin
@@ -1130,11 +1132,11 @@ package Performance_pkg;
             My_sequencer_t seqr;
             My_sequence_t  seq;
             $cast(seqr, seqrs[id]);
-            $cast(agent,seqr.get_parent());
+            $cast(agent, seqr.get_parent());
             seq = My_sequence_t::type_id::create($sformatf("seq[%0d]", id));
             seq.m_id = seqr.m_id;
             seq.m_level = agent.m_level;
-            `uvm_info("DEBUG",$sformatf("Starting %0d.%0d", seq.m_level, seq.m_id), UVM_DEBUG)
+            `uvm_info("DEBUG", $sformatf("Starting %0d.%0d", seq.m_level, seq.m_id), UVM_DEBUG)
             seq.start(seqr);
           end
         join_none
@@ -1146,7 +1148,7 @@ package Performance_pkg;
         phase.raise_objection(this, "raising");
         #(`BUSY*`CLOCK_PERIOD);
         if (messages > 0) begin
-          `uvm_info("run_phase","DUMMY data",UVM_MEDIUM)
+          `uvm_info("run_phase", "DUMMY data", UVM_MEDIUM)
           --messages;
         end
         phase.drop_objection(this, "lowering");
@@ -1159,13 +1161,13 @@ package Performance_pkg;
   function void My_test_t::extract_phase(uvm_phase phase);
     m_cpu_finished_time  = get_cpu_time();
     m_wall_finished_time = get_wall_time();
-    `uvm_info("main_phase",$sformatf("\n%s\nENDING\n%s", SEP4, SEP5), UVM_NONE)
+    `uvm_info("main_phase", $sformatf("\n%s\nENDING\n%s", SEP4, SEP5), UVM_NONE)
   endfunction : My_test_t::extract_phase
   //--------------------------------------------------------------------------
   function void My_test_t::report_phase(uvm_phase phase);
     longint cpu_ms, wall_ms;
     string sep1, sep2, summary;
-    sep1 = {"\n",SEP6, "\n"};
+    sep1 = {"\n", SEP6, "\n"};
     cpu_ms  = 1000 * ( m_cpu_finished_time   - m_cpu_starting_time  );
     wall_ms = 1000 * ( m_wall_finished_time  - m_wall_starting_time );
     summary =           $sformatf(  "#   %s transactions created", formatn(My_transaction_t::s_count));
@@ -1217,7 +1219,7 @@ module Top;
   //----------------------------------------------------------------------------
   initial begin
     uvm_top.enable_print_topology = 1;
-    uvm_config_db#(virtual My_intf)::set(null,"*","vif", harness.if1);
+    uvm_config_db#(virtual My_intf)::set(null, "*", "vif", harness.if1);
     // FUTURE: genvar loop to hookup interface pairs
     run_test("My_test_t");
   end
