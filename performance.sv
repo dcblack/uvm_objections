@@ -474,7 +474,7 @@ package Performance_pkg;
     bound_tr_len(m_tr_len, m_id);
     m_reps = m_count/m_tr_len;
     `uvm_info("DEBUG", $sformatf("Starting %0d.%0d for %0d repetitions", m_level, m_id, m_reps), UVM_DEBUG)
-  endtask : My_sequence_t::pre_start
+  endtask // My_sequence_t::pre_start
   //----------------------------------------------------------------------------
   task My_sequence_t::body;
     // Perform a simple reset when starting
@@ -496,11 +496,11 @@ package Performance_pkg;
         finish_item(req);
       end//if
     end
-  endtask : My_sequence_t::body
+  endtask // My_sequence_t::body
   //----------------------------------------------------------------------------
   task My_sequence_t::post_start;
     `uvm_info("DEBUG", $sformatf("Ending %0d", m_id), UVM_DEBUG)
-  endtask : My_sequence_t::post_start
+  endtask // My_sequence_t::post_start
 
 //EOF: my_sequence.sv
 //IFile: my_driver.svh
@@ -554,7 +554,7 @@ package Performance_pkg;
     assert(uvm_config_db#(longint) ::get(this, "", "switching",  m_switching));
     assert(uvm_config_db#(tr_len_t)::get(this, "", "tr_len",     m_tr_len));
     bound_tr_len(m_tr_len, m_id);
-  endfunction : My_driver_t::connect_phase
+  endfunction // My_driver_t::connect_phase
   //----------------------------------------------------------------------------
   task My_driver_t::run_phase(uvm_phase phase);
     string obj_name = $sformatf("driver[%0d]", m_id);
@@ -602,7 +602,7 @@ package Performance_pkg;
       if (m_bfm_objects) phase.drop_objection(this, $sformatf("%s end transmit", obj_name));
       m_busy = 0;
     end//forever
-  endtask : My_driver_t::run_phase
+  endtask // My_driver_t::run_phase
   //----------------------------------------------------------------------------
   function void My_driver_t::phase_ready_to_end(uvm_phase phase);
     if ( phase.is(uvm_run_phase::get()) && (m_busy == 1)) begin
@@ -613,7 +613,7 @@ package Performance_pkg;
         phase.drop_objection(this , "Driver's extension succeeded");
       end join_none
     end
-  endfunction : My_driver_t::phase_ready_to_end
+  endfunction // My_driver_t::phase_ready_to_end
   //----------------------------------------------------------------------------
 
 //EOF: my_driver.sv
@@ -664,7 +664,7 @@ package Performance_pkg;
     m_starting_event = m_global_event_pool.get("starting");
     assert(uvm_config_db#(bit)    ::get(this, "", "use_monitor", m_use_monitor));
     assert(uvm_config_db#(bit)    ::get(this, "", "bfm_object",  m_bfm_objects));
-  endfunction : My_monitor_t::connect_phase
+  endfunction // My_monitor_t::connect_phase
   //----------------------------------------------------------------------------
   task My_monitor_t::run_phase(uvm_phase phase);
     string   obj_name = $sformatf("monitor[%0d]", m_id);
@@ -697,7 +697,7 @@ package Performance_pkg;
         m_busy = 0;
       end//repeat
     end
-  endtask : My_monitor_t::run_phase
+  endtask // My_monitor_t::run_phase
   //----------------------------------------------------------------------------
   function void My_monitor_t::phase_ready_to_end(uvm_phase phase);
     if ( phase.is(uvm_run_phase::get()) && m_busy) begin
@@ -708,7 +708,7 @@ package Performance_pkg;
         phase.drop_objection(this , "Monitor's extension succeeded");
       end join_none
     end
-  endfunction : My_monitor_t::phase_ready_to_end
+  endfunction // My_monitor_t::phase_ready_to_end
   //----------------------------------------------------------------------------
 
 //EOF: my_monitor.sv
@@ -755,7 +755,7 @@ package Performance_pkg;
     m_sequencer = My_sequencer_t::type_id::create($sformatf("m_sequencer[%0d]", m_id), this);
     m_driver    = My_driver_t   ::type_id::create($sformatf("m_driver[%0d]", m_id), this);
     m_monitor   = My_monitor_t  ::type_id::create($sformatf("m_monitor[%0d]", m_id), this);
-  endfunction : My_agent_t::build_phase
+  endfunction // My_agent_t::build_phase
   //----------------------------------------------------------------------------
   function void My_agent_t::connect_phase(uvm_phase phase);
     virtual My_intf vif;
@@ -768,7 +768,7 @@ package Performance_pkg;
     m_driver.m_id    = m_id;
     m_monitor.m_id   = m_id;
     m_sequencer.m_id = m_id;
-  endfunction : My_agent_t::connect_phase
+  endfunction // My_agent_t::connect_phase
   //----------------------------------------------------------------------------
 
 //EOF: my_agent.sv
@@ -847,12 +847,12 @@ package Performance_pkg;
         m_agent[i].m_level = this.m_level;
       end
     end
-  endfunction : My_env_t::build_phase
+  endfunction // My_env_t::build_phase
   //----------------------------------------------------------------------------
   function void My_env_t::connect_phase(uvm_phase phase);
     assert(uvm_config_db#(longint) ::get(this, "", "messages", s_messages));
     assert(uvm_config_db#(longint) ::get(this, "", "warnings", s_warnings));
-  endfunction : My_env_t::connect_phase
+  endfunction // My_env_t::connect_phase
   //----------------------------------------------------------------------------
 
 //EOF: my_env.sv
@@ -912,7 +912,7 @@ package Performance_pkg;
       `endif
       objection.set_drain_time(uvm_top, 2*`CLOCK_PERIOD);
     end
-  endfunction : My_test_t::phase_started
+  endfunction // My_test_t::phase_started
   //----------------------------------------------------------------------------
   function void My_test_t::build_phase(uvm_phase phase);
     `ifdef UVM_POST_VERSION_1_1
@@ -1048,12 +1048,12 @@ package Performance_pkg;
     // Instantiate environment
     m_env = My_env_t::type_id::create("m_env", this);
     `uvm_info("build_phase", $sformatf("Created %s", get_full_name()), UVM_NONE)
-  endfunction : My_test_t::build_phase
+  endfunction // My_test_t::build_phase
 
   //----------------------------------------------------------------------------
   task My_test_t::reset_phase(uvm_phase phase);
     `uvm_info("build_phase", $sformatf("\n%s\nPREPARING\n%s", SEP1, SEP2), UVM_NONE)
-  endtask : My_test_t::reset_phase
+  endtask // My_test_t::reset_phase
 
   //----------------------------------------------------------------------------
   task My_test_t::main_phase(uvm_phase phase);
@@ -1156,13 +1156,13 @@ package Performance_pkg;
     end
     phase.drop_objection(this, "lowering at end of top sequence"); // simulate sequence done
     #1ps;
-  endtask : My_test_t::main_phase
+  endtask // My_test_t::main_phase
   //--------------------------------------------------------------------------
   function void My_test_t::extract_phase(uvm_phase phase);
     m_cpu_finished_time  = get_cpu_time();
     m_wall_finished_time = get_wall_time();
     `uvm_info("main_phase", $sformatf("\n%s\nENDING\n%s", SEP4, SEP5), UVM_NONE)
-  endfunction : My_test_t::extract_phase
+  endfunction // My_test_t::extract_phase
   //--------------------------------------------------------------------------
   function void My_test_t::report_phase(uvm_phase phase);
     longint cpu_ms, wall_ms;
@@ -1186,7 +1186,7 @@ package Performance_pkg;
                         )
               };
     `uvm_info("report_phase", $sformatf("\n%s\nSUMMARY:\n%s\n%s", sep1, summary, sep2), UVM_NONE)
-  endfunction : My_test_t::report_phase
+  endfunction // My_test_t::report_phase
   //--------------------------------------------------------------------------
 
 //EOF: my_test.sv
