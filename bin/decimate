@@ -1,0 +1,44 @@
+#!/usr/bin/perl -pi
+
+=pod
+
+=head1 NAME
+
+remove_lines_matching - remove lines matching pattern from specified files.
+
+=head1 SYNOPSIS
+
+remove_lines_matching 'PATTERN' FILE_LIST
+
+=head1 DESCRIPTION
+
+Removes lines matching supplied pattern from specified files. No backup is kept.
+
+=cut
+
+use strict;
+use warnings;
+use vars qw($count $pattern $first $last);
+
+BEGIN {
+  $count = 0;
+  $pattern = shift @ARGV unless defined $pattern;
+}
+
+$first = undef if ($. <= 1);
+
+if (m{$pattern}) {
+  $_ = '';
+  $first = $. unless defined $first;
+  $last = $.;
+  ++$count;
+}
+
+if (eof) {
+  if (defined $last) {
+    printf STDERR "Removed %d lines matching m{%s} in file '%s' lines %d-%d\n", $count, $pattern, $ARGV, $first, $last;
+    $_ .= sprintf("\nRemoved %d lines matching m{%s} in lines %d-%d\n", $count, $pattern, $first, $last);
+  }#endif
+  $count = 0;
+  $first = undef;
+}
