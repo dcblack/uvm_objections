@@ -18,16 +18,25 @@ Removes lines matching supplied pattern from specified files. No backup is kept.
 
 use strict;
 use warnings;
-use vars qw($count $pattern $first $last);
+use vars qw($count $pattern $first $last $deleted $min $max);
 
 BEGIN {
   $count = 0;
+  $deleted = 0 unless defined $deleted;
   $pattern = shift @ARGV unless defined $pattern;
 }
 
-$first = undef if ($. <= 1);
+if ($. <= 1) {
+  $first = undef;
+  $min = 1e6;
+  $max = 0;
+}
 
-if (m{$pattern}) {
+if (m{$pattern} and not m{^Decimated }) {
+  my $len = length $_;
+  $max = $len if $max < $len;
+  $min = $len if $min > $len;
+  $deleted += $len;
   $_ = '';
   $first = $. unless defined $first;
   $last = $.;
@@ -36,8 +45,11 @@ if (m{$pattern}) {
 
 if (eof) {
   if (defined $last) {
-    printf STDERR "Removed %d lines matching m{%s} in file '%s' lines %d-%d\n", $count, $pattern, $ARGV, $first, $last;
-    $_ .= sprintf("\nRemoved %d lines matching m{%s} in lines %d-%d\n", $count, $pattern, $first, $last);
+    my $range = $max;
+    $range = sprintf("%d-%d",$min,$max) if ($min < $max);
+    my $text = sprintf("Decimated %d lines (%s chars) matching m{%s} lines %d-%d", $count, $range, $pattern, $first, $last);
+    printf STDERR "%s in file '%s'\n",$text,$ARGV;
+    $_ .= "\n".$text."\n";
   }#endif
   $count = 0;
   $first = undef;
