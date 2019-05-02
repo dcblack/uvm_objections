@@ -199,7 +199,7 @@ STD_FLAGS   := -fPIC
 START_DIR   := ${shell /bin/pwd}
             
 ifndef UVM_HOME
-  UVM_HOME := $(lastword $(shell $(FIND_PGM) /eda/uvm/. /apps -name -name uvm-$(UVM_VER)$(UVM_SUB_VER)))
+  UVM_HOME := $(lastword $(shell $(FIND_PGM) /eda/uvm/. /apps -name uvm-$(UVM_VER)$(UVM_SUB_VER)))
   ifeq "" "$(wildcard ${UVM_HOME})"
   UVM_HOME := "UVM_HOME_environment_variable_undefined_please_locate_and_define"
   endif
